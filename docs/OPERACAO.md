@@ -87,3 +87,11 @@ O Portaria Digital possui manifesto e ícones para instalação no Android, iPho
 No Android, abra no Chrome e use Adicionar à tela inicial / Instalar aplicativo. No iPhone e iPad, abra no Safari e use Compartilhar → Adicionar à Tela de Início. No computador, use a opção de instalar do Chrome ou Edge. A instalação cria um ícone e mantém o banco e as permissões atuais. O aplicativo requer internet para confirmar os registros; não guarda dados operacionais para consulta offline.
 
 A administração cria as contas individuais em **Equipe e permissões → Adicionar colaborador**, com perfil Operador para o atendimento. Cada pessoa deve usar sua conta. A autorização da hospedagem é independente dessas contas: enquanto o Site estiver restrito ao proprietário, somente sua conta ChatGPT consegue abrir o endereço. Para distribuir à equipe, é necessário configurar a audiência da hospedagem ou autorizar uma tela de entrada acessível por link, mantendo as funções do banco protegidas pelo login do aplicativo.
+
+## Publicação na Vercel
+
+O arquivo `vercel.json` configura o projeto como Vite, instala as dependências com `npm ci`, compila com `npm run build` e publica somente `dist/`. A regra de rotas entrega o aplicativo nos acessos diretos. O manifesto instalável mantém seu tipo de conteúdo e pode ser revalidado após atualizações.
+
+Importe o repositório `gbmartins20/Portaria-Digital`, branch `main`, na equipe Vercel autorizada. Use Node.js 24 e configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` conforme `.env.example`. Esses dois valores são públicos do cliente; nunca use service_role no frontend. O banco, as contas e a Edge Function continuam no projeto Supabase existente. Não execute migrações nem reimporte dados para trocar a hospedagem.
+
+O endereço de produção destinado à equipe deve apresentar diretamente o login do Portaria Digital. Valide uma sessão sem autenticação e o bloqueio das consultas sem usuário autorizado. A instalação no celular deve usar o novo endereço de produção. A hospedagem anterior no Sites possui uma configuração independente de acesso e não é alterada pela publicação na Vercel.
