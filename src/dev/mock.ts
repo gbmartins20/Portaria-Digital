@@ -13,6 +13,7 @@ export async function mockRPC(name:string,args:Record<string,unknown>):Promise<u
  const p=args.p as Record<string,unknown>;const f=(args.f||{}) as Record<string,string>;
  switch(name){
  case 'pd_me':return mockProfile;
+ case 'pd_dashboard':return (await import('./dashboardMock')).dashboardMock(f);
  case 'pd_catalogs':return catalogs.filter(c=>(!f.kind||c.kind===f.kind)&&(c.active||f.inactive)&&(!f.search||c.name.toLowerCase().includes(f.search.toLowerCase()))).map(c=>({...c}));
  case 'pd_catalog_save':{const c={...p,id:p.id||uuid(),version:Number(p.version||0)+1} as Catalog;const i=catalogs.findIndex(x=>x.id===c.id);if(i<0)catalogs.push(c);else catalogs[i]=c;return c;}
  case 'pd_records':case 'pd_export':{const filtered=records.filter(r=>r.module===f.module&&(f.status==='closed'?(r.exit_at||(r.legacy&&!r.legacy.open_at_import))&&!r.canceled_at:f.status==='canceled'?r.canceled_at:!r.exit_at&&!r.canceled_at&&(!r.legacy||r.legacy.open_at_import))&&(!f.search||[r.name,r.plate,r.driver,r.city_name].some(s=>s.toLowerCase().includes(f.search.toLowerCase()))));return {items:filtered,count:filtered.length};}

@@ -12,6 +12,7 @@ grant execute on function app_private.me(),app_private.catalog_list(jsonb),app_p
 grant execute on function public.pd_me(),public.pd_catalogs(jsonb),public.pd_catalog_save(jsonb),public.pd_records(jsonb),public.pd_export(jsonb),public.pd_record(uuid),public.pd_save(jsonb,uuid,uuid,int,text),public.pd_close(uuid),public.pd_cancel(uuid,text),public.pd_admin(text,int),public.pd_import(uuid,jsonb,boolean) to authenticated;
 grant execute on function public.pd_manage_user(uuid,uuid,jsonb),public.pd_setup_reserve(text,text),public.pd_setup_finish(uuid,uuid,text),public.pd_setup_release(uuid),public.pd_provision_email(text,boolean),app_private.manage_user(uuid,uuid,jsonb),app_private.setup_reserve(text,text),app_private.setup_finish(uuid,uuid,text),app_private.setup_release(uuid),app_private.provision_email(text,boolean) to service_role;
 -- Uma restauração nunca reativa códigos de configuração anteriores.
+grant execute on function public.pd_dashboard(jsonb),app_private.dashboard(jsonb) to authenticated;
 update app_private.bootstrap set used_at=now(),token_hash='restored-disabled',reservation=null,reserved_at=null,email=null;
 truncate app_private.provisioning;
 notify pgrst,'reload schema';

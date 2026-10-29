@@ -69,3 +69,11 @@ A publicação inicial é privada, para teste do responsável. Liberar o acesso 
 Nenhum plano pago, domínio ou cobrança foi ativado. Verifique cotas e termos no painel dos provedores. Use o consumo mostrado em **Continuidade** e os relatórios oficiais; estabeleça avisos de 70% e 90% após confirmar as cotas contratadas.
 
 O PMU ainda precisa definir retenção, base e texto informativo, responsabilidade pelas contas e procedimento manual de contingência. O histórico não é excluído após sete dias.
+
+## Dashboard administrativo
+
+No menu Administração, abra **Dashboard**. Há painéis de visitantes, descarte e saída de materiais, com filtros de ano e mês, consulta de todo o histórico e exportação do resumo em CSV. Os gráficos usam todos os registros do recorte, sem o limite de paginação das listas.
+
+Visitantes conta cada responsável e seus acompanhantes uma vez. A cidade dos acompanhantes é a cidade de referência do grupo. Registros cancelados e projeções duplicadas do legado são excluídos. Campos ausentes permanecem identificados. Registros sem data entram apenas em Todo o histórico sem filtro de mês.
+
+Descarte e retirada mostram volume conhecido em m³ e número de movimentações por mês, tipo e empresa. Quantidade ausente não equivale a zero e fica fora da soma de volume. Operadores não têm acesso ao painel, inclusive pela API.
