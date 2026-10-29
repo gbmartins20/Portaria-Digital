@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+import {indexedDB} from 'fake-indexeddb';
+
+test('fila offline persiste, isola contas, mantém erros e reenvia entrada/saída sem duplicação',async()=>{
+ Object.defineProperty(globalThis,'indexedDB',{value:indexedDB,configurable:true});
+ Object.defineProperty(globalThis,'window',{value:new EventTarget(),configurable:true});
+ let online=false;Object.defineProperty(globalThis,'navigator',{value:{get onLine(){return online;},storage:{persist:async()=>true}},configurable:true});
+ const owner={id:'account-a',name:'Operador QA',email:'qa@example.invalid',role:'operator',active:true};
+ let account=owner.id;let fail=true;const requests:any[]=[];const server=new Map();
+ (globalThis as any).__offlineTransport={supabase:{auth:{getSession:async()=>({data:{session:{user:{id:account}}}})}},remoteRPC:async(name:string,args:any)=>{requests.push({name,args});if(fail)throw new Error('Failed to fetch');if(args.operation==='save'){const key=args.payload.request_key;if(!server.has(key))server.set(key,{id:'server:'+key});}return {};}};
+ const source=readFileSync(new URL('../src/offline.ts',import.meta.url),'utf8').replace("import {remoteRPC,supabase} from './api';","const {remoteRPC,supabase}=globalThis.__offlineTransport;");
+ const js=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText;
+ const m=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
+ await m.persist('active',owner.id);await m.persist('profile:'+owner.id,owner);
+ const args={request_key:crypto.randomUUID(),p:{module:'visitor',name:'Visitante QA',companions:[{sex:'F',age:'5-15'}]}};
+ const entry=await m.offlineRPC('pd_save',args);
+ assert.ok(entry.id.startsWith('local:'));assert.equal((await m.pending(owner.id)).length,1);
+ await m.capture(args,owner);assert.equal((await m.pending(owner.id)).length,1);
+ assert.equal((await m.pending('other-account')).length,0);
+ await m.queueClose(entry,owner.id);assert.equal((await m.pending(owner.id)).length,2);
+ await m.sync(owner.id);assert.equal(requests.length,0);
+ online=true;await m.sync(owner.id);assert.equal((await m.pending(owner.id)).length,2);assert.match((await m.pending(owner.id))[0].error,/conexão/);
+ account='other-account';fail=false;await m.sync(owner.id);assert.equal(server.size,0);
+ account=owner.id;await Promise.all([m.sync(owner.id),m.sync(owner.id)]);assert.equal((await m.pending(owner.id)).length,0);assert.equal(server.size,1);
+ const sent=requests.filter(r=>r.args.operation==='save');assert.ok(sent.every(r=>r.args.operation_key===args.request_key));assert.equal(requests.at(-1).args.operation,'close');
+ await m.forgetAccess();assert.equal(await m.cachedProfile(),undefined);
+ assert.equal(await m.stored('profile:'+owner.id) instanceof Object,true);
+});

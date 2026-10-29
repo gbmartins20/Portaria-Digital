@@ -7,8 +7,8 @@
 - **Saída** encerra a movimentação e transfere para o histórico correspondente. Em grupos, todos compartilham a mesma saída.
 - A equipe compartilha as movimentações: quem faz a saída pode ser diferente de quem registrou a entrada.
 - Use **Atualizar** para consultar mudanças realizadas em outra estação. Não há consulta automática contínua.
-- Se houver falha de conexão, mantenha o formulário aberto e verifique o envio pelo mesmo formulário. Não crie outra entrada antes de conferir a primeira.
-- Fechar/recarregar o navegador pode perder um rascunho. Não há fila de gravação offline.
+- Em falhas de conexão, toque em Salvar normalmente. A confirmação indica que o registro ficou no aparelho; acompanhe o painel de pendências até o envio ao banco.
+- Rascunhos ainda não salvos podem se perder ao fechar. Entradas e saídas já salvas ficam na fila IndexedDB deste navegador, mesmo após recarregar. Não limpe os dados do navegador antes da sincronização.
 
 ## Cadastros e correções
 
@@ -84,7 +84,7 @@ No painel de visitantes, a faixa etária é apresentada em gráfico de rosca, co
 
 O Portaria Digital possui manifesto e ícones para instalação no Android, iPhone/iPad e computador. Use **Instalar aplicativo** na tela de login ou na barra superior. Quando o navegador não oferecer a instalação automática, o botão mostra as instruções de instalação e permite copiar o endereço.
 
-No Android, abra no Chrome e use Adicionar à tela inicial / Instalar aplicativo. No iPhone e iPad, abra no Safari e use Compartilhar → Adicionar à Tela de Início. No computador, use a opção de instalar do Chrome ou Edge. A instalação cria um ícone e mantém o banco e as permissões atuais. O aplicativo requer internet para confirmar os registros; não guarda dados operacionais para consulta offline.
+No Android, abra no Chrome e use Adicionar à tela inicial / Instalar aplicativo. No iPhone e iPad, abra no Safari e use Compartilhar → Adicionar à Tela de Início. No computador, use a opção de instalar do Chrome ou Edge. A instalação cria um ícone e mantém o banco e as permissões atuais. Abra e autentique a conta uma vez com internet neste aparelho para preparar o uso offline. A última consulta e os cadastros auxiliares ficam disponíveis offline; não representam os dados atuais de outros aparelhos. Entradas (incluindo novos municípios, veículos e condutores) e saídas são salvas localmente. O painel mostra as pendências por conta, inclusive a saída de uma entrada ainda não enviada. Ao voltar a rede, mantenha o aplicativo aberto: tenta enviar automaticamente na reconexão, ao voltar à janela e a cada 20 segundos. Se a sessão expirar, entre novamente com a mesma conta. Não há garantia de envio com o aplicativo fechado. Correções, cancelamentos e administração exigem internet. Horários do aparelho ficam auditados separadamente do recebimento no servidor; mantenha data e hora automáticas. Se a rede ou a conta recusarem o envio, a pendência permanece visível; não recrie a movimentação. O envio usa a mesma chave em todas as tentativas para impedir duplicações.
 
 A administração cria as contas individuais em **Equipe e permissões → Adicionar colaborador**, com perfil Operador para o atendimento. Cada pessoa deve usar sua conta. A autorização da hospedagem é independente dessas contas: enquanto o Site estiver restrito ao proprietário, somente sua conta ChatGPT consegue abrir o endereço. Para distribuir à equipe, é necessário configurar a audiência da hospedagem ou autorizar uma tela de entrada acessível por link, mantendo as funções do banco protegidas pelo login do aplicativo.
 

@@ -21,7 +21,6 @@ export function EntryForm({module,profile,catalogs,entry,onClose,onSaved}:Props)
  useEffect(()=>{const fn=(e:BeforeUnloadEvent)=>{if(dirty||uncertain){e.preventDefault();e.returnValue='';}};addEventListener('beforeunload',fn);return()=>removeEventListener('beforeunload',fn);},[dirty,uncertain]);
  useEffect(()=>{if(normalizePlate(data.plate).length!==7){setDuplicate(false);return;}let live=true;const timer=setTimeout(()=>{rpc<{items:Entry[]}>('pd_records',{f:{module,status:'open',search:normalizePlate(data.plate)}}).then(r=>{if(live)setDuplicate(r.items.some(i=>normalizePlate(i.plate)===normalizePlate(data.plate)&&i.id!==entry?.id));}).catch(()=>{});},500);return()=>{live=false;clearTimeout(timer);};},[data.plate,module,entry?.id]);
  async function submit(e:FormEvent){e.preventDefault();if(saving.current)return;setError('');
- if(!navigator.onLine){setError('Sem conexão. O registro ainda não foi salvo. Mantenha esta página aberta.');return;}
  if(module==='visitor'&&(!data.sex||!data.age||!data.city_id)){setError('Selecione sexo, faixa etária e cidade do responsável.');return;}
  if(module!=='visitor'&&(!data.vehicle_id||!data.driver.trim()||normalizePlate(data.plate).length!==7)){setError('Selecione um cadastro e preencha condutor e placa.');return;}
  if((module==='disposal'||module==='material')&&(!data.type_id||decimal(data.quantity)===null)){setError('Selecione o tipo e informe uma quantidade válida, sem valores negativos e com até 3 casas decimais.');return;}

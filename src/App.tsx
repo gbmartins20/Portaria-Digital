@@ -7,6 +7,8 @@ import {Auth} from './Auth';
 import {EntryForm} from './EntryForm';
 import {Detail} from './Detail';
 import {InstallAppButton} from './InstallApp';
+import {OfflinePanel} from './OfflinePanel';
+import {cachedProfile,forgetAccess,queueClose} from './offline';
 import {Dashboard} from './Dashboard';
 import {Admin,type AdminSection} from './Admin';
 const icons={visitor:Users,disposal:Truck,material:PackageOpen,service:HardHat};
@@ -19,12 +21,13 @@ export function App(){
  const notify=useCallback((message:string)=>{setToast(message);clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(''),4500);},[]);
  const loadProfile=useCallback(async()=>{const generation=++authGeneration.current;try{
  if(import.meta.env.DEV && DEV_PREVIEW){const {mockProfile}=await import('./dev/mock');profileRef.current=mockProfile;setProfile(mockProfile);setLocked(false);return;}
+ if(!navigator.onLine){const cached=await cachedProfile();if(cached){profileRef.current=cached;setProfile(cached);setLocked(false);}return;}
  const {data:{session}}=await supabase.auth.getSession();
  if(!session){if(profileRef.current&&!intentionalLogout.current)setLocked(true);setInitial(false);return;}
  const p=await rpc<Profile>('pd_me');if(generation!==authGeneration.current)return;
  if(profileRef.current&&profileRef.current.id!==p.id){setAuthError('Entre com a mesma conta para continuar o formulário.');setLocked(true);return;}
  profileRef.current=p;setProfile(p);setLocked(false);setAuthError('');
- }catch(e){setAuthError(errorMessage(e));if(profileRef.current)setLocked(true);}finally{setInitial(false);}},[]);
+ }catch(e){setAuthError(errorMessage(e));if(profileRef.current&&navigator.onLine)setLocked(true);}finally{setInitial(false);}},[]);
  useEffect(()=>{void loadProfile();const {data:{subscription}}=supabase.auth.onAuthStateChange(()=>{queueMicrotask(()=>{void loadProfile();});});return()=>subscription.unsubscribe();},[loadProfile]);
  const loadCatalogs=useCallback(async()=>{const data=await rpc<Catalog[]>('pd_catalogs',{f:{inactive:profileRef.current?.role==='admin'}});setCatalogs(data);},[]);
  useEffect(()=>{if(profile&&!locked)loadCatalogs().catch(e=>setError(errorMessage(e)));},[profile?.id,locked,loadCatalogs]);
@@ -42,9 +45,9 @@ export function App(){
  },[profile?.id,locked,admin,module,history,status,filters,revision]);
  function navigate(m:Module,h=false){setModule(m);setHistory(h);setStatus('closed');setAdmin(null);setDrawer(false);setFilters(blankFilters);setQuery('');setShowFilters(false);setItems([]);setCount(0);setError('');}
  function openAdmin(s:AdminSection|'dashboard'){setAdmin(s);setDrawer(false);setError('');}
- async function closeEntry(r:Entry){if(closingRef.current.has(r.id))return false;closingRef.current.add(r.id);setClosing(r.id);try{await rpc('pd_close',{rid:r.id});setDetail(null);setRevision(n=>n+1);notify('Saída registrada.');return true;}catch(e){setError(errorMessage(e));return false;}finally{closingRef.current.delete(r.id);setClosing(null);}}
+ async function closeEntry(r:Entry){if(closingRef.current.has(r.id))return false;closingRef.current.add(r.id);setClosing(r.id);try{if(!DEV_PREVIEW)await queueClose(r,profile!.id);else await rpc('pd_close',{rid:r.id});setDetail(null);setRevision(n=>n+1);notify(DEV_PREVIEW?'Saída registrada.':'Saída salva no aparelho. Acompanhe a sincronização nas pendências.');return true;}catch(e){setError(errorMessage(e));return false;}finally{closingRef.current.delete(r.id);setClosing(null);}}
  async function getDetail(r:Entry){try{const fresh=await rpc<Entry>('pd_record',{rid:r.id});if(fresh)setDetail(fresh);else setError('Registro não encontrado. Atualize a lista.');}catch(e){setError(errorMessage(e));}}
- async function logout(){++authGeneration.current;intentionalLogout.current=true;profileRef.current=null;setProfile(null);setLocked(false);setItems([]);setCatalogs([]);setDetail(null);setForm(null);setAdmin(null);try{await supabase.auth.signOut();}catch{}finally{intentionalLogout.current=false;}}
+ async function logout(){await forgetAccess();++authGeneration.current;intentionalLogout.current=true;profileRef.current=null;setProfile(null);setLocked(false);setItems([]);setCatalogs([]);setDetail(null);setForm(null);setAdmin(null);try{await supabase.auth.signOut();}catch{}finally{intentionalLogout.current=false;}}
  async function exportCSV(){if(exporting)return;setExporting(true);setError('');try{const all:Entry[]=[];let offset=0;for(;;){const data=await rpc<{items:Entry[];count:number}>('pd_export',{f:{...requestFilters,offset}});all.push(...data.items);if(data.items.length<500||all.length>=data.count)break;offset+=500;}const blob=new Blob([toCSV(all)],{type:'text/csv;charset=utf-8;'});const href=URL.createObjectURL(blob);const a=document.createElement('a');a.href=href;a.download=`portaria-${module}-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(href);notify(`${all.length} registro${all.length!==1?'s':''} exportado${all.length!==1?'s':''}.`);}catch(e){setError(errorMessage(e));}finally{setExporting(false);}}
  if(initial)return <div className="initial-loading"><TreePine size={44}/><strong>Portaria Digital</strong><span>Preparando seu acesso…</span></div>;
  if(!profile)return <>{authError&&<div className="auth-global-error" role="alert">{authError}</div>}<Auth onSuccess={loadProfile}/></>;
@@ -56,7 +59,8 @@ export function App(){
  {profile.role==='admin'&&<><span className="nav-label history-label">ADMINISTRAÇÃO</span>{([{section:'dashboard',label:'Dashboard',icon:Activity},{section:'catalogs',label:'Cadastros auxiliares',icon:BookOpen},{section:'users',label:'Equipe e permissões',icon:Users},{section:'audit',label:'Auditoria',icon:ShieldCheck},{section:'health',label:'Continuidade',icon:Activity}] as const).map(it=><button key={it.section} className={admin===it.section?'active':''} onClick={()=>openAdmin(it.section)}><it.icon size={18}/><span>{it.label}</span></button>)}</>}
  </nav><div className="sidebar-bottom"><div className="user-block"><div className="user-avatar">{profile.name.charAt(0)}</div><div><strong>{profile.name}</strong><span>{profile.role==='admin'?'Administrador':'Operador da portaria'}</span></div></div><div className="account-buttons"><button onClick={()=>openAdmin('password')}><KeyRound size={16}/> Minha senha</button><button onClick={logout}><LogOut size={16}/> Sair</button></div><div className="sidebar-version"><span>PORTARIA DIGITAL</span><span>v1.0</span></div></div></aside>
  <div className="workspace"><header className="topbar"><button className="icon-button" aria-label="Abrir menu" aria-expanded={drawer} onClick={()=>setDrawer(!drawer)}><Menu size={23}/></button><div className="topbar-title"><strong>Portaria Digital</strong><span>PARQUE MUNICIPAL ROBERTO CAÇÃO</span></div><InstallAppButton compact/><div className="topbar-right"><div className={`connection-dot ${online?'':'offline'}`} aria-hidden="true"/><span>{online?'Conectado':'Sem conexão'}</span><span className="today">{new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'numeric',month:'long',year:'numeric'}).format(new Date())}</span></div></header>
- {!online&&<div className="offline-banner" role="alert"><WifiOff size={18}/> Sem conexão. Novos registros só serão confirmados quando a conexão voltar. Mantenha o formulário aberto.</div>}
+ {!online&&<div className="offline-banner" role="alert"><WifiOff size={18}/> Sem conexão. Salve normalmente: as entradas e saídas ficam neste aparelho até a sincronização. As listas mostram a última consulta disponível.</div>}
+ {!DEV_PREVIEW&&<OfflinePanel owner={profile.id} onSynced={()=>{setRevision(n=>n+1);void loadCatalogs().catch(()=>{});}} onCloseEntry={closeEntry}/>}
  {DEV_PREVIEW&&<div className="info-notice qa-banner">AMBIENTE DE TESTE VISUAL · Somente dados fictícios em memória · Sem acesso ao banco real</div>}
  <main className="main-content" id="main-content">{admin==='dashboard'?<Dashboard/>:admin?<Admin section={admin} profile={profile} catalogs={catalogs} onRefresh={loadCatalogs} onToast={notify}/>:<>
  <div className="page-heading"><div><div className="eyebrow">{history?'CONSULTA DE MOVIMENTAÇÕES':'ATENDIMENTO NA PORTARIA'}</div><h1>{history?current.history:current.title}</h1><p>{history?'Consulte os registros e acompanhe os detalhes de cada movimentação.':current.description}</p></div><div className={`module-symbol ${module}`}><ModuleIcon size={27} strokeWidth={1.5}/></div></div>
@@ -71,7 +75,7 @@ export function App(){
  </>}</main>
  <nav className="bottom-tabs" aria-label="Módulos da portaria">{modules.map(m=>{const Icon=icons[m.id];return <button key={m.id} className={module===m.id&&!history&&!admin?'active':''} onClick={()=>navigate(m.id)} aria-current={module===m.id&&!history&&!admin?'page':undefined}><Icon size={22}/><span>{m.title}</span></button>;})}</nav>
  </div>
- {form&&<EntryForm module={form.entry?.module||module} profile={profile} catalogs={catalogs} entry={form.entry} onClose={()=>setForm(null)} onSaved={r=>{void loadCatalogs().catch(()=>{});setForm(null);setRevision(n=>n+1);notify(form.entry?'Registro atualizado.':r.module==='visitor'?`Entrada registrada. ${1+r.companions.length} pessoa${r.companions.length?'s':''} no grupo.`:'Entrada registrada.');}}/>}
+ {form&&<EntryForm module={form.entry?.module||module} profile={profile} catalogs={catalogs} entry={form.entry} onClose={()=>setForm(null)} onSaved={r=>{void loadCatalogs().catch(()=>{});setForm(null);setRevision(n=>n+1);notify(r.id.startsWith('local:')?'Entrada salva no aparelho. Acompanhe a sincronização nas pendências.':form.entry?'Registro atualizado.':r.module==='visitor'?`Entrada registrada. ${1+r.companions.length} pessoa${r.companions.length?'s':''} no grupo.`:'Entrada registrada.');}}/>}
  {detail&&<Detail entry={detail} profile={profile} onClose={()=>setDetail(null)} onEdit={()=>{setForm({entry:detail});setDetail(null);}} onClosed={()=>closeEntry(detail)} onCanceled={()=>{setDetail(null);setRevision(n=>n+1);notify('Registro cancelado.');}}/>}
  {toast&&<div className="toast" role="status"><CheckCircle2 size={19}/>{toast}<button aria-label="Fechar aviso" onClick={()=>setToast('')}><X size={15}/></button></div>}
  </div>{locked&&<div className="reauth-overlay">{authError&&<div className="auth-global-error" role="alert">{authError}</div>}<Auth reauth email={profile.email} onSuccess={loadProfile}/></div>}</>

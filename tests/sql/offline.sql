@@ -1,0 +1,22 @@
+begin;
+select set_config('request.jwt.claim.sub',(select id::text from app_private.profiles where active and role='operator' limit 1),true);
+do $$declare k uuid:=gen_random_uuid(); ck uuid:=gen_random_uuid(); d jsonb; a jsonb; b jsonb; t timestamptz:=now()-interval '2 hours'; n bigint;begin
+ d:=jsonb_build_object('request_key',k,'p',jsonb_build_object('module','visitor','name','QA OFFLINE ROLLBACK','sex','M','age','21-35','city_id',(select id from app_private.catalogs where kind='city' and active limit 1),'companions',jsonb_build_array(jsonb_build_object('sex','F','age','21-35'))));
+ a:=public.pd_sync('save',d,t,k);
+ if (a->>'entry_at')::timestamptz<>t then raise exception 'Perdeu horário offline';end if;
+ b:=public.pd_sync('save',d,t,k);
+ if a->>'id'<>b->>'id' then raise exception 'Duplicação no reenvio';end if;
+ select count(*) into n from app_private.companions where record_id=(a->>'id')::uuid;
+ if n<>1 then raise exception 'Acompanhantes divergentes';end if;
+ b:=public.pd_sync('close',jsonb_build_object('request_key',k),t+interval '1 hour',ck);
+ if (b->>'exit_at')::timestamptz<>t+interval '1 hour' then raise exception 'Perdeu saída offline';end if;
+ b:=public.pd_sync('close',jsonb_build_object('request_key',k),now(),ck);
+ if (b->>'exit_at')::timestamptz<>t+interval '1 hour' then raise exception 'Alterou saída no reenvio';end if;
+ begin perform public.pd_sync('save',d,now()+interval '1 day',k);raise exception 'ACEITOU FUTURO';exception when others then if sqlerrm='ACEITOU FUTURO' then raise;end if;end;
+ k:=gen_random_uuid();d:=jsonb_set(d,'{request_key}',to_jsonb(k));
+ begin perform public.pd_sync('save',jsonb_set(d,'{p,entry_at}',to_jsonb(t)),t,k);raise exception 'ACEITOU CORRECAO';exception when others then if sqlerrm='ACEITOU CORRECAO' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub','',true);
+ begin perform public.pd_sync('save',d,t,k);raise exception 'ACEITOU ANON';exception when insufficient_privilege then null;end;
+end$$;
+select 'Offline: horários de entrada e saída, acompanhantes, reenvio idempotente, futuro e autenticação: aprovados' result;
+rollback;

@@ -1,2 +1,5 @@
-import { defineConfig } from 'vite';
-export default defineConfig({ build: { target: 'es2022', sourcemap: false }, server: {host:'0.0.0.0',allowedHosts:true} });
+import {defineConfig} from 'vite';
+export default defineConfig({plugins:[{name:'offline-shell',generateBundle(_,bundle){const urls=['/','/index.html','/manifest.webmanifest','/brasao.png','/app-180.png','/app-192.png','/app-512.png','/icon.svg',...Object.keys(bundle).filter(k=>k.endsWith('.js')||k.endsWith('.css')).map(k=>'/'+k)];const version='pd-shell-'+Date.now();this.emitFile({type:'asset',fileName:'sw.js',source:`const CACHE=${JSON.stringify(version)},URLS=${JSON.stringify(urls)};
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(URLS))));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('pd-shell-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==self.location.origin)return;if(e.request.mode==='navigate'){e.respondWith(fetch(e.request).catch(()=>caches.match('/index.html')));return;}if(URLS.includes(u.pathname))e.respondWith(caches.open(CACHE).then(async c=>(await c.match(e.request))||fetch(e.request)));});`});}}],build:{target:'es2022',sourcemap:false},server:{host:'0.0.0.0',allowedHosts:true}});

@@ -21,7 +21,7 @@ Não existe cadastro público. Recuperação de senha é feita pela administraç
 - Perfis de operador e administrador. Conta desativada perde acesso mesmo com token emitido anteriormente.
 - Correções com controle de versão, cancelamento com motivo, trilha de auditoria e CSV administrativo protegido contra fórmulas.
 - Reenvios idempotentes e baixa concorrente sem substituir horário ou operador originais.
-- Formulário mantido em memória em falhas de conexão ou expiração de sessão. Não grava offline nem mantém dados pessoais em cache de PWA.
+- Entradas e saídas offline persistidas em IndexedDB por conta, fila com sincronização autenticada e idempotente, horários do aparelho auditados e shell PWA em service worker. Correções e administração exigem internet.
 - Lançamentos de contingência pela administração com horário ocorrido e justificativa.
 - Importação canônica com simulação, identificação do legado e prevenção de duplicatas.
 - Importação da exportação Excel original com arquivo privado de todas as linhas, conciliação dos grupos e consulta de históricos incompletos sem inventar datas ou quantidades.
