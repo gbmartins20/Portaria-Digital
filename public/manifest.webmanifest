@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "Portaria Digital · PMU",
+  "short_name": "Portaria PMU",
+  "description": "Controle de entradas e saídas do Parque Municipal de Rio das Ostras.",
+  "lang": "pt-BR",
+  "start_url": "/?origem=aplicativo",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f6f0",
+  "theme_color": "#52603c",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "prefer_related_applications": false
+}

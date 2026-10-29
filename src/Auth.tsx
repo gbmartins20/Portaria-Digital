@@ -1,6 +1,7 @@
 import React,{useState,type FormEvent} from 'react';
 import {ArrowRight,Eye,EyeOff,LockKeyhole,TreePine,ShieldCheck,ArrowLeft} from 'lucide-react';
 import {supabase,adminAction,errorMessage} from './api';
+import {InstallAppButton} from './InstallApp';
 import {Brand,ErrorNotice,Field} from './ui';
 export function Auth({reauth=false,email='',onSuccess}:{reauth?:boolean;email?:string;onSuccess:()=>void}){
  const [mode,setMode]=useState<'login'|'setup'>(location.hash==='#setup'&&!reauth?'setup':'login');const [mail,setMail]=useState(email);const [password,setPassword]=useState('');const [name,setName]=useState('');const [code,setCode]=useState('');const [show,setShow]=useState(false);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [info,setInfo]=useState('');
@@ -18,5 +19,5 @@ export function Auth({reauth=false,email='',onSuccess}:{reauth?:boolean;email?:s
  {mode==='login'&&<button type="button" className="forgot" onClick={()=>setInfo('Para recuperar seu acesso, solicite uma nova senha à administração do PMU.')}>Esqueci minha senha</button>}
  <button type="submit" className="button auth-submit" disabled={busy}>{busy?'Aguarde…':mode==='setup'?'Configurar e entrar':'Entrar no Portaria Digital'}<ArrowRight size={18}/></button></form>
  {!reauth&&<button type="button" className="setup-link" onClick={()=>{setMode(mode==='setup'?'login':'setup');setError('');setInfo('');}}>{mode==='setup'?<><ArrowLeft size={14}/> Voltar para o login</>:'Configurar primeiro acesso'}</button>}
- <div className="auth-security"><ShieldCheck size={15}/><span>Acesso restrito aos colaboradores autorizados do PMU.</span></div></div><div className="auth-bottom">Parque Municipal Roberto Pereira Inocêncio · Roberto Cação</div></main></div>
+ {!reauth&&<div className="auth-install"><InstallAppButton/></div>}<div className="auth-security"><ShieldCheck size={15}/><span>Acesso restrito aos colaboradores autorizados do PMU.</span></div></div><div className="auth-bottom">Parque Municipal Roberto Pereira Inocêncio · Roberto Cação</div></main></div>
 }
