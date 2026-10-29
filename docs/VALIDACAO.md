@@ -20,3 +20,10 @@ Não foram disponibilizadas exportações reais, credenciais de banco para backu
 O fluxo inicial foi implementado com as premissas do PRD: nome de visitante opcional, zero permitido nos volumes, baixa conjunta e ausência de serviço a pé sem placa fictícia. Essas decisões exigem homologação operacional, junto com cores e aplicação do brasão.
 
 O aplicativo é entregue para piloto do responsável. A substituição definitiva do AppSheet depende dos critérios de pronto do PRD, especialmente migração, backup restaurado, equipe e responsabilidades institucionais.
+
+## Ajustes de cadastro rápido · 29/10/2026
+
+- Nove testes locais aprovados, incluindo o preenchimento por placa em descarte/retirada e por condutor em serviço, sem herdar dados da carga anterior.
+- `tests/sql/quick-catalogs.sql` validou inclusão pelo operador nos quatro módulos, reutilização do veículo entre descarte e retirada, reenvio sem duplicatas, rejeição de cadastro existente com outros dados, rollback integral e bloqueio de conta inativa/gestão administrativa indevida. Todos os dados de teste foram revertidos.
+- Interface verificada no navegador com perfil de operador e dados fictícios: município novo selecionado na visita; veículo cadastrado no descarte e reutilizado na retirada com condutor/empresa preenchidos; novo condutor de serviço cadastrado e depois selecionado com placa, empresa e veículo preenchidos.
+- Cancelar o formulário preserva o comportamento de descarte do rascunho; nenhum cadastro rápido é gravado separadamente da movimentação.

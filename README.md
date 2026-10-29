@@ -16,6 +16,7 @@ Não existe cadastro público. Recuperação de senha é feita pela administraç
 - Registrar Visitantes, Descarte, Saída de Materiais e Pessoas à Serviços, na mesma ordem do legado.
 - Uma visita contém um responsável e seus acompanhantes. Salvar e registrar saída são operações transacionais do grupo inteiro.
 - Pesquisa no servidor, paginação, históricos, filtros por dia de Brasília e detalhe dos integrantes.
+- Cadastro rápido de municípios, veículos e condutores pelo operador, dentro do atendimento e confirmado junto com a entrada.
 - Cadastros auxiliares, preenchimento assistido e preservação da empresa/condutor/cidade históricos.
 - Perfis de operador e administrador. Conta desativada perde acesso mesmo com token emitido anteriormente.
 - Correções com controle de versão, cancelamento com motivo, trilha de auditoria e CSV administrativo protegido contra fórmulas.

@@ -3,15 +3,18 @@ import {Plus,Minus,Users,Trash2,Pencil,Info,AlertTriangle,Save,Check} from 'luci
 import {rpc,errorMessage} from './api';
 import {uuid,ages,decimal,localDateTime,normalizePlate,modules,type Age,type Sex,type Module,type Entry,type Profile,type Catalog,type Companion} from './domain';
 import {Modal,Field,CatalogSelect,ErrorNotice,Confirm} from './ui';
+import {QuickCatalogForm,type QuickKind} from './QuickCatalogForm';
+import {catalogDefaults} from './domain';
 
 type Props={module:Module;profile:Profile;catalogs:Catalog[];entry?:Entry;onClose:()=>void;onSaved:(entry:Entry)=>void};
 export function EntryForm({module,profile,catalogs,entry,onClose,onSaved}:Props){
  const [data,setData]=useState(()=>({name:entry?.name||'',sex:entry?.sex||'',age:entry?.age||'',city_id:entry?.city_id||'',phone:entry?.phone||'',plate:entry?.plate||'',vehicle_id:entry?.vehicle_id||'',driver:entry?.driver||'',company_name:entry?.company_name||'',vehicle_label:entry?.vehicle_label||'',type_id:entry?.type_id||'',quantity:entry?String(entry.quantity).replace('.',','):'0',location:entry?.location||'',note:entry?.note||''}));
+ const [draftCatalog,setDraftCatalog]=useState<Catalog|null>(null);const [quick,setQuick]=useState<{kind:QuickKind;query:string}|null>(null);
  const [companions,setCompanions]=useState<Companion[]>(entry?.companions||[]);const [comp,setComp]=useState<{index:number;sex:Sex|'';age:Age|''}|null>(null);
  const [error,setError]=useState('');const [busy,setBusy]=useState(false);const saving=useRef(false);const [uncertain,setUncertain]=useState(false);const [discard,setDiscard]=useState(false);const [duplicate,setDuplicate]=useState(false);const [reason,setReason]=useState('');
  const [correctTimes,setCorrectTimes]=useState(false);const [entered,setEntered]=useState(localDateTime(entry?.entry_at||new Date().toISOString()));const [exited,setExited]=useState(entry?.exit_at?localDateTime(entry.exit_at):'');
  const [key]=useState(()=>uuid());const initial=useRef(JSON.stringify({data,companions}));const dirty=JSON.stringify({data,companions})!==initial.current||correctTimes||reason!=='';
- const all=[...catalogs];
+ const all=[...catalogs,...(draftCatalog?[draftCatalog]:[])];
  if(entry){const add=(id:string|undefined,kind:Catalog['kind'],name:string)=>{if(id&&!all.some(i=>i.id===id))all.push({id,kind,name,active:false,version:1,data:{}});};add(entry.city_id,'city',entry.city_name);add(entry.vehicle_id,module==='service'?'service':'vehicle',module==='service'?entry.driver:entry.plate);add(entry.type_id,module==='disposal'?'waste':'material',entry.type_name);}
  const set=(k:keyof typeof data,v:string)=>setData(d=>({...d,[k]:v}));
  function close(){if(saving.current)return;if(dirty||uncertain)setDiscard(true);else onClose();}
@@ -28,10 +31,12 @@ export function EntryForm({module,profile,catalogs,entry,onClose,onSaved}:Props)
  const current=await rpc<Profile>('pd_me');if(current.id!==profile.id)throw new Error('A conta mudou durante o preenchimento. Entre com a conta que iniciou este formulário.');
  const payload:Record<string,unknown>={module,...data,quantity:decimal(data.quantity)??0,companions};
  if(correctTimes){payload.entry_at=entered?`${entered}:00-03:00`:null;if(exited)payload.exit_at=`${exited}:00-03:00`;}
+ if(draftCatalog&&(data.city_id===draftCatalog.id||data.vehicle_id===draftCatalog.id))payload.new_catalog={kind:draftCatalog.kind,name:draftCatalog.name,data:draftCatalog.data};
  const saved=await rpc<Entry>('pd_save',{p:payload,request_key:key,rid:entry?.id||null,expected_version:entry?.version||null,reason:reason.trim()||null});
  onSaved(saved);
  }catch(e){const msg=errorMessage(e);setError(msg);if(/confirmação|conexão/.test(msg))setUncertain(true);}finally{saving.current=false;setBusy(false);}}
- function chooseVehicle(id:string,c?:Catalog){setData(d=>({...d,vehicle_id:id,plate:c?.data.plate||c?.name||'',driver:module==='service'?c?.name||'':c?.data.driver||'',company_name:c?.data.company||'',vehicle_label:c?.data.vehicle||''}));}
+ function chooseVehicle(id:string,c?:Catalog){setData(d=>({...d,vehicle_id:id,...catalogDefaults(module,c)}));}
+ function useNewCatalog(c:Catalog){setDraftCatalog(c);if(c.kind==='city')set('city_id',c.id);else chooseVehicle(c.id,c);setQuick(null);}
  const title=entry?'Editar registro':module==='visitor'?'Registrar visitante':module==='disposal'?'Registrar descarte':module==='material'?'Registrar saída de materiais':'Registrar pessoa a serviço';
  return <><Modal title={title} subtitle={entry?'As alterações ficam registradas na auditoria.':'O horário de entrada será registrado ao salvar.'} onClose={close}><form onSubmit={submit}>
  <div className="modal-body entry-fields"><fieldset className="form-fieldset" disabled={busy||uncertain}>
@@ -39,7 +44,7 @@ export function EntryForm({module,profile,catalogs,entry,onClose,onSaved}:Props)
  <Field label="Nome"><input autoFocus maxLength={160} value={data.name} onChange={e=>set('name',e.target.value)} placeholder="Nome do responsável" className="uppercase"/></Field>
  <div className="field"><span className="field-label">Sexo <b>*</b></span><div className="segmented" role="group" aria-label="Sexo do responsável">{(['M','F'] as Sex[]).map(s=><button key={s} type="button" className={data.sex===s?'selected':''} aria-pressed={data.sex===s} onClick={()=>set('sex',s)}>{s==='M'?'M · Masculino':'F · Feminino'}{data.sex===s&&<Check size={15}/>}</button>)}</div></div>
  <div className="field"><span className="field-label">Faixa Etária <b>*</b></span><div className="age-options" role="group" aria-label="Faixa etária do responsável">{ages.map(a=><button type="button" key={a} aria-pressed={data.age===a} className={data.age===a?'selected':''} onClick={()=>set('age',a)}>{a}</button>)}</div></div>
- <CatalogSelect id="city" label="Cidade" required items={all.filter(c=>c.kind==='city')} value={data.city_id} onSelect={id=>set('city_id',id)}/>
+ <CatalogSelect id="city" label="Cidade" kind="city" onCreate={query=>setQuick({kind:'city',query})} createLabel="Cadastrar novo município" required items={all.filter(c=>c.kind==='city')} value={data.city_id} onSelect={id=>set('city_id',id)}/>
  <Field label="Telefone" hint="Opcional. Informe o DDD."><input type="tel" maxLength={25} value={data.phone} onChange={e=>set('phone',e.target.value)} placeholder="(22) 99999-9999"/></Field>
  <Field label="Placa do Veículo" hint="Deixe em branco para visitantes a pé."><input value={data.plate} onChange={e=>set('plate',normalizePlate(e.target.value))} maxLength={7} placeholder="ABC1D23" className="plate-input"/></Field>
  <section className="companions-section"><div className="section-label"><Users size={18}/><strong>Adicione Todos os Passageiros do Veículo</strong></div><p>Informe sexo e faixa etária de cada acompanhante.</p>
@@ -47,12 +52,12 @@ export function EntryForm({module,profile,catalogs,entry,onClose,onSaved}:Props)
  <button type="button" className="button add-companion" onClick={()=>setComp({index:-1,sex:'',age:''})} disabled={companions.length>=200}><Plus size={17}/> Adicionar acompanhante</button>
  <div className="people-total">1 responsável + {companions.length} acompanhante{companions.length!==1?'s':''}<strong>{1+companions.length} pessoa{companions.length?'s':''}</strong></div></section>
  </>:<>
- <CatalogSelect id="vehicle" label={module==='service'?'Condutor':module==='material'?'Placa':'Placa do Veículo'} required items={all.filter(c=>c.kind===(module==='service'?'service':'vehicle'))} value={data.vehicle_id} onSelect={chooseVehicle}/>
+ <CatalogSelect id="vehicle" kind={module==='service'?'service':'vehicle'} onCreate={query=>setQuick({kind:module==='service'?'service':'vehicle',query})} createLabel={module==='service'?'Cadastrar novo condutor':'Cadastrar novo veículo'} label={module==='service'?'Condutor':module==='material'?'Placa':'Placa do Veículo'} required items={all.filter(c=>c.kind===(module==='service'?'service':'vehicle'))} value={data.vehicle_id} onSelect={chooseVehicle}/>
  {module!=='service'&&<Field label="Condutor" required><input required maxLength={160} value={data.driver} onChange={e=>set('driver',e.target.value)} className="uppercase"/></Field>}
  {module==='service'&&<Field label="Placa" required><input required maxLength={7} value={data.plate} onChange={e=>set('plate',normalizePlate(e.target.value))} className="plate-input"/></Field>}
  <Field label="Empresa" required={module!=='material'}><input list="companies" required={module!=='material'} maxLength={200} value={data.company_name} onChange={e=>set('company_name',e.target.value)} className="uppercase"/><datalist id="companies">{all.filter(c=>c.kind==='company'&&c.active).map(c=><option key={c.id} value={c.name}/>)}</datalist></Field>
  {module==='service'?<Field label="Veículo" required><input required maxLength={100} value={data.vehicle_label} onChange={e=>set('vehicle_label',e.target.value)} placeholder="Identificação do veículo"/></Field>:<>
- <CatalogSelect id="material-type" label={module==='disposal'?'Tipo de Resíduo':'Tipo de Material'} required items={all.filter(c=>c.kind===(module==='disposal'?'waste':'material'))} value={data.type_id} onSelect={id=>set('type_id',id)}/>
+ <CatalogSelect id="material-type" kind={module==='disposal'?'waste':'material'} label={module==='disposal'?'Tipo de Resíduo':'Tipo de Material'} required items={all.filter(c=>c.kind===(module==='disposal'?'waste':'material'))} value={data.type_id} onSelect={id=>set('type_id',id)}/>
  <Field label="Quantidade (m³)" required={module==='material'} hint="Aceita vírgula decimal. Exemplo: 2,5 m³."><div className="quantity-control"><button type="button" aria-label="Diminuir quantidade" onClick={()=>set('quantity',String(Math.max(0,Math.round(((decimal(data.quantity)||0)-1)*1000)/1000)).replace('.',','))}><Minus size={18}/></button><input required inputMode="decimal" value={data.quantity} onChange={e=>set('quantity',e.target.value)} aria-label="Quantidade em metros cúbicos"/><button type="button" aria-label="Aumentar quantidade" onClick={()=>set('quantity',String(Math.round(((decimal(data.quantity)||0)+1)*1000)/1000).replace('.',','))}><Plus size={18}/></button></div></Field>
  <Field label={module==='disposal'?'Origem (local de coleta)':'Destino'}><input maxLength={300} value={data.location} onChange={e=>set('location',e.target.value)}/></Field>
  </>}
@@ -63,6 +68,7 @@ export function EntryForm({module,profile,catalogs,entry,onClose,onSaved}:Props)
  </fieldset><ErrorNotice message={error}/>
  <div className="form-note"><Info size={16}/><span>{uncertain?'O envio anterior pode ter sido concluído. Verifique com o mesmo formulário para evitar duplicação.':'O registro só é confirmado depois que você tocar em Salvar.'}</span></div>
  </div><footer className="modal-footer"><button type="button" className="button secondary" onClick={close} disabled={busy}>Cancelar</button><button type="submit" className="button" disabled={busy}><Save size={17}/>{busy?(uncertain?'Verificando registro…':'Salvando…'):uncertain?'Verificar registro':'Salvar'}</button></footer></form></Modal>
+ {quick&&<QuickCatalogForm kind={quick.kind} query={quick.query} catalogs={all} onClose={()=>setQuick(null)} onUse={useNewCatalog}/>}
  {comp&&<Modal title={comp.index<0?'Adicionar acompanhante':'Editar acompanhante'} subtitle="Este acompanhante será salvo junto com o responsável." onClose={()=>setComp(null)}><form onSubmit={e=>{e.preventDefault();if(!comp.sex||!comp.age)return;const next={sex:comp.sex,age:comp.age};setCompanions(a=>comp.index<0?[...a,next]:a.map((c,i)=>i===comp.index?next:c));setComp(null);}}><div className="modal-body"><Field label="Sexo_Acompanhante" required><select required value={comp.sex} onChange={e=>setComp({...comp,sex:e.target.value as Sex})}><option value="">Selecione</option><option value="M">M · Masculino</option><option value="F">F · Feminino</option></select></Field><Field label="Faixa_Etaria_Acompanhante" required><select required value={comp.age} onChange={e=>setComp({...comp,age:e.target.value as Age})}><option value="">Selecione</option>{ages.map(a=><option key={a}>{a}</option>)}</select></Field></div><footer className="modal-footer"><button type="button" className="button secondary" onClick={()=>setComp(null)}>Cancelar</button><button type="submit" className="button">Salvar acompanhante</button></footer></form></Modal>}
  {discard&&<Confirm title={uncertain?'Sair antes de verificar?':'Descartar alterações?'} message={uncertain?'O servidor pode ter salvo o registro. Confira a lista antes de tentar criar outro.':'O formulário ainda não foi salvo. Ao sair, os dados preenchidos serão descartados.'} onClose={()=>setDiscard(false)} onConfirm={onClose} danger/>}
  </>

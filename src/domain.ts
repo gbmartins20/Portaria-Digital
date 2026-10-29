@@ -37,3 +37,6 @@ export function toCSV(items:Entry[]){
 export function localDateTime(iso:string){const p=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(iso));return p.replace(' ','T');}
 
 export function uuid(){if(typeof crypto.randomUUID==='function')return crypto.randomUUID();const bytes=crypto.getRandomValues(new Uint8Array(16));bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const s=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');return `${s.slice(0,8)}-${s.slice(8,12)}-${s.slice(12,16)}-${s.slice(16,20)}-${s.slice(20)}`;}
+
+// Sugestões do cadastro substituem somente identificação; dados da carga não são herdados.
+export function catalogDefaults(module:Module,catalog?:Catalog){return {plate:catalog?.data.plate||catalog?.name||'',driver:module==='service'?catalog?.name||'':catalog?.data.driver||'',company_name:catalog?.data.company||'',vehicle_label:catalog?.data.vehicle||''};}

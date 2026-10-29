@@ -515,3 +515,14 @@ As referências abaixo sustentam apenas a avaliação de infraestrutura. Não su
 A versão inicial estará pronta quando os requisitos P0 estiverem implementados e homologados, os cenários críticos passarem, os dados migrados estiverem conciliados, o backup tiver sido restaurado com sucesso, as contas e permissões estiverem validadas e a equipe conseguir executar a rotina preservada do AppSheet. A administração deverá aceitar as decisões pendentes que afetem a operação antes da substituição definitiva.
 
 **Entregável desta etapa:** somente este PRD.md. Não inclui código, banco criado, migração executada, assinatura de serviço ou publicação.
+
+## 22. Ajuste autorizado — cadastro rápido de operadores (29/10/2026)
+
+Esta decisão posterior do responsável atualiza as pendências de inclusão rápida citadas nas seções anteriores:
+
+- Em visitantes, operador pode cadastrar município ausente durante o formulário.
+- Em descarte e saída de materiais, operador pode cadastrar veículo ausente, informando placa, condutor e empresa. O cadastro é compartilhado pelos dois módulos.
+- Em pessoas a serviço, operador pode cadastrar condutor ausente, informando nome, placa, empresa e veículo.
+- Selecionar placa em descarte/retirada sugere condutor e empresa. Selecionar condutor de serviço sugere placa, empresa e veículo.
+- Cadastro rápido é preparado no formulário e confirmado em transação junto com a entrada. Cancelar ou falhar não deixa cadastro auxiliar órfão.
+- O operador não ganha acesso à edição administrativa, desativação de cadastros, gestão de usuários ou tipos de resíduos/materiais. Cadastros existentes nunca são sobrescritos por inclusão rápida.

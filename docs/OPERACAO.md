@@ -12,7 +12,7 @@
 
 ## Cadastros e correções
 
-Cadastre primeiro as opções reais usadas pelo PMU, incluindo cidades e os dois conjuntos separados de tipos: resíduos recebidos e materiais retirados. Nome do responsável e placa de visitante são opcionais. Os módulos de serviço, descarte e retirada exigem cadastro de referência.
+A administração cadastra os dois conjuntos separados de tipos: resíduos recebidos e materiais retirados. No atendimento, o operador pode usar **Cadastrar novo município**, **Cadastrar novo veículo** ou **Cadastrar novo condutor** quando não encontrar a opção. Veículos exigem placa, condutor e empresa; serviço exige nome do condutor, placa, empresa e veículo. O novo cadastro preenche o formulário e é gravado junto com a entrada, ao tocar em **Salvar**. Cancelar o atendimento descarta o cadastro pendente. Veículos operacionais ficam disponíveis nos módulos de descarte e retirada, com preenchimento de condutor e empresa ao selecionar a placa. No serviço, selecionar o condutor preenche placa, empresa e veículo. Nome do responsável e placa de visitante são opcionais. Os módulos de serviço, descarte e retirada exigem cadastro de referência.
 
 Quantidade aceita zero e até três casas decimais. Uma placa já aberta gera aviso, não bloqueio. Baixa conjunta, nome opcional e regras de zero seguem as premissas provisórias do PRD e devem ser validadas com Gabriel e os operadores.
 
