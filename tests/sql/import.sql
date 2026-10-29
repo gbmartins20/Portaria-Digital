@@ -1,0 +1,20 @@
+begin;
+insert into app_private.provisioning(email,expires_at) values('import-tests@example.invalid',now()+interval '3 minutes');
+insert into auth.users(id,email,raw_user_meta_data) values('30000000-0000-4000-8000-000000000001','import-tests@example.invalid','{"name":"IMPORT TEST"}');
+update app_private.profiles set active=true,role='admin' where id='30000000-0000-4000-8000-000000000001';
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+set local role authenticated;
+do $$declare city jsonb;rows jsonb;result jsonb;batch uuid:=gen_random_uuid();bad boolean:=false;begin
+ city:=public.pd_catalog_save('{"kind":"city","name":"IMPORT CIDADE DE TESTE"}');
+ rows:=jsonb_build_array(jsonb_build_object('source','responsavel','source_id','IMPORT-TESTE-UNICIDADE','record',jsonb_build_object('module','visitor','name','IMPORT VISITANTE TESTE','sex','F','age','36-59','city_id',city->>'id','entry_at','2026-10-27T23:50:00-03:00','exit_at','2026-10-28T00:20:00-03:00','companions','[{"sex":"M","age":"5-15"}]'::jsonb)));
+ result:=public.pd_import(batch,rows,true);if (result->>'validated')::int<>1 then raise exception 'Simulação não validou';end if;
+ if (public.pd_records('{"module":"visitor","status":"closed","search":"IMPORT VISITANTE TESTE"}')->>'count')::int<>0 then raise exception 'Simulação persistiu dados';end if;
+ result:=public.pd_import(batch,rows,false);if (result->>'validated')::int<>1 then raise exception 'Importação não gravou';end if;
+ result:=public.pd_import(gen_random_uuid(),rows,false);if (result->>'skipped')::int<>1 or (result->>'validated')::int<>0 then raise exception 'Reimportação duplicou';end if;
+ if (public.pd_records('{"module":"visitor","status":"closed","search":"IMPORT VISITANTE TESTE"}')->>'count')::int<>1 then raise exception 'Contagem de importação incorreta';end if;
+ begin perform public.pd_import(gen_random_uuid(),jsonb_build_array(jsonb_build_object('source','Visitantes','source_id','X','record',rows->0->'record')),false);exception when others then bad:=true;end;
+ if not bad then raise exception 'Projeção estatística não conciliada foi importada';end if;
+end$$;
+reset role;
+select jsonb_build_object('status','passed','scenarios',5,'fixtures','rolled_back') as result;
+rollback;

@@ -1,0 +1,9 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {normalizePlate,decimal,csvCell,duration,dateTime,toCSV,type Entry} from '../src/domain.ts';
+test('normaliza placas antigas e Mercosul',()=>{assert.equal(normalizePlate('abc-1234'),'ABC1234');assert.equal(normalizePlate('a bc 1d23'),'ABC1D23');});
+test('quantidade decimal, vírgula e limites',()=>{assert.equal(decimal('2,5'),2.5);assert.equal(decimal('0'),0);assert.equal(decimal('3.125'),3.125);for(const s of ['-1','NaN','Infinity','1e3','2,5.2','','1,1234','1000000000'])assert.equal(decimal(s),null);});
+test('CSV neutraliza fórmulas inclusive após espaços e quebras',()=>{for(const value of ['=SUM(A1:A2)',' +CMD','-1+2','@teste','\t=1','\n=1'])assert.ok(csvCell(value).startsWith('"\''));assert.equal(csvCell('João; "PMU"'),'"João; ""PMU"""');});
+test('permanência usa instantes completos através da meia-noite',()=>{assert.equal(duration('2026-10-29T02:50:00Z','2026-10-29T03:20:00Z'),'30min');assert.equal(duration('2026-10-27T03:00:00Z','2026-10-29T04:02:00Z'),'2d 1h 2min');});
+test('formatação usa dia brasileiro em vez de UTC',()=>{assert.match(dateTime('2026-10-29T02:30:00Z'),/28\/10\/2026/);assert.match(dateTime('2026-10-29T03:00:00Z'),/29\/10\/2026/);});
+test('exporta um grupo uma vez e descreve acompanhantes sem duplicar linhas',()=>{const r={module:'visitor',name:'TESTE',sex:'M',age:'21-35',city_name:'RIO DAS OSTRAS',quantity:0,entry_at:'2026-10-29T12:00:00Z',exit_at:null,companions:[{sex:'F',age:'5-15'},{sex:'M',age:'0-4'}]} as Entry;const csv=toCSV([r]);assert.ok(csv.startsWith('\uFEFF'));assert.equal(csv.split('\r\n').length,2);assert.match(csv,/"3"/);assert.match(csv,/1: F, 5-15 \| 2: M, 0-4/);});

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.sites-runtime/
+.openai/*.local.*
+*.dump
+*.enc
+*.tar.gz
+coverage/
+*.tsbuildinfo
+__pycache__/
+supabase/.temp/
+*.hmac
+*.sha256

@@ -1,0 +1,6 @@
+project_id = "portaria-digital"
+[auth]
+enable_signup = false
+minimum_password_length = 12
+[functions.portaria-admin]
+verify_jwt = false

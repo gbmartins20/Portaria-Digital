@@ -1,0 +1,35 @@
+name: Backup criptografado do Portaria Digital
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 6 * * *'
+permissions:
+  contents: read
+jobs:
+  backup:
+    if: vars.PORTARIA_BACKUP_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    container: postgres:17-bookworm
+    timeout-minutes: 15
+    env:
+      PGHOST: ${{ secrets.PORTARIA_DB_HOST }}
+      PGUSER: ${{ secrets.PORTARIA_DB_USER }}
+      PGPASSWORD: ${{ secrets.PORTARIA_DB_PASSWORD }}
+      PGDATABASE: postgres
+      PGPORT: 5432
+      BACKUP_PASSPHRASE: ${{ secrets.PORTARIA_BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar OpenSSL
+        run: apt-get update -qq && apt-get install -y -qq openssl ca-certificates python3
+      - name: Gerar backup sem arquivo intermediário em texto
+        run: bash scripts/backup.sh portaria.dump.enc
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portaria-backup-${{ github.run_id }}
+          path: |
+            portaria.dump.enc
+            portaria.dump.enc.sha256
+            portaria.dump.enc.hmac
+          retention-days: 30
+          if-no-files-found: error
