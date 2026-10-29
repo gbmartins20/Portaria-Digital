@@ -24,6 +24,7 @@ Não existe cadastro público. Recuperação de senha é feita pela administraç
 - Formulário mantido em memória em falhas de conexão ou expiração de sessão. Não grava offline nem mantém dados pessoais em cache de PWA.
 - Lançamentos de contingência pela administração com horário ocorrido e justificativa.
 - Importação canônica com simulação, identificação do legado e prevenção de duplicatas.
+- Importação da exportação Excel original com arquivo privado de todas as linhas, conciliação dos grupos e consulta de históricos incompletos sem inventar datas ou quantidades.
 
 ## Desenvolvimento
 
@@ -52,6 +53,7 @@ Não recrie o banco nem execute migrações novamente sobre o projeto desta entr
 
 - `npm test`: validação de decimais, placas, horário brasileiro, permanência e CSV.
 - `tests/sql/integrity.sql`: cenários transacionais e de autorização, em transação revertida.
+- `python -m unittest tests/workbook_test.py` e `tests/sql/workbook.sql`: datas do Excel, campos históricos ausentes, idempotência, proteção do arquivo e conciliação.
 - `scripts/integration-http.mjs`: teste contra ambiente preparado; credenciais temporárias por stdin. **Não executar em produção sem um ambiente de teste separado**.
 - `/qa` e `mobile-preview.html`: teste visual em `vite dev`, exclusivamente com dados fictícios em memória. Não integram a versão de produção; não acessam o banco real.
 
@@ -59,7 +61,7 @@ Consulte [operação e backups](docs/OPERACAO.md), [migração](docs/MIGRACAO.md
 
 ## Antes de substituir o AppSheet
 
-Importar e conciliar as exportações reais; homologar os quatro fluxos com a equipe; configurar backup externo, ensaiar restauração e definir responsáveis institucionais por acesso, retenção e contingência. Não foram recebidas exportações das tabelas reais e nenhum histórico foi inventado.
+Conferir as pendências identificadas no legado; homologar os quatro fluxos com a equipe; configurar backup externo, ensaiar restauração e definir responsáveis institucionais por acesso, retenção e contingência. O manifesto privado de importação registra os totais e o resultado da conciliação. Campos ausentes do arquivo não são inventados.
 
 ## Identidade visual
 

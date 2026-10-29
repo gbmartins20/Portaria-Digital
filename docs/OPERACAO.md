@@ -54,7 +54,13 @@ O painel **Continuidade** mostra registros de backup produzidos pelo script. Aus
 6. Confira usuários, grupos, acompanhantes, abertos/encerrados, volumes e auditoria. Em um projeto Supabase de teste, publique a Edge Function, aponte uma cópia do frontend para ele e teste Auth e os quatro fluxos.
 7. Registre data, responsável, contagens e tempo de recuperação. Só então marque a restauração como validada no controle institucional. Repita trimestralmente.
 
-RPO de 24 horas e RTO de quatro horas úteis são metas do PRD, ainda não demonstradas. Sem as credenciais de conexão e sem exportações do legado, esta entrega não afirma que backup ou migração estejam concluídos.
+RPO de 24 horas e RTO de quatro horas úteis são metas do PRD, ainda não demonstradas. A importação do legado é conferida pelo manifesto de cada lote. A configuração do backup externo e seu ensaio de restauração continuam dependendo das credenciais de conexão.
+
+### Consulta do legado importado
+
+Os históricos incluem os dados importados e identificam sua origem como **Legado**. Dados ausentes são apresentados como não informados. **Saída a conferir** indica que o arquivo não permite afirmar a data e hora de saída. A importação não registra uma saída atual para esses casos. A administração deve conferir a origem antes de corrigir o horário.
+
+Cadastros históricos incompletos ou com placa repetida e dados divergentes ficam inativos. Confira os campos no cadastro auxiliar antes de ativá-los. A planilha original e os lotes preparados não devem ser publicados no repositório.
 
 ## Hospedagem, privacidade e custo
 

@@ -15,11 +15,18 @@
 
 ## Limites de homologação
 
-Não foram disponibilizadas exportações reais, credenciais de banco para backup externo, nem os aparelhos efetivamente usados pela equipe. Não foi realizada conciliação do legado, restauração completa de um dump externo, teste de 100 mil registros/10 operadores ou medição de P95 em condições equivalentes às da portaria.
+Não foram disponibilizadas credenciais de banco para backup externo, nem os aparelhos efetivamente usados pela equipe. Não foi realizada restauração completa de um dump externo, teste de 100 mil registros/10 operadores ou medição de P95 em condições equivalentes às da portaria. As divergências de origem da exportação real ficam preservadas e sinalizadas para conferência.
 
 O fluxo inicial foi implementado com as premissas do PRD: nome de visitante opcional, zero permitido nos volumes, baixa conjunta e ausência de serviço a pé sem placa fictícia. Essas decisões exigem homologação operacional, junto com cores e aplicação do brasão.
 
 O aplicativo é entregue para piloto do responsável. A substituição definitiva do AppSheet depende dos critérios de pronto do PRD, especialmente migração, backup restaurado, equipe e responsabilidades institucionais.
+
+## Importação do arquivo original
+
+- Doze testes locais de TypeScript e sete testes de conversão do Excel aprovados. Campos ausentes, horários parciais, saídas em outro dia e placas com vários valores têm cobertura própria.
+- `tests/sql/workbook.sql` verifica idempotência, acompanhantes sem dados demográficos, consulta de históricos sem hora, bloqueio de saída atual para pendência histórica, fechamento do manifesto e ausência de permissões diretas. A transação é revertida.
+- Todos os lotes de atendimentos são simulados no banco em transações revertidas antes da aplicação. A conclusão exige os controles de `finish_workbook`, incluindo a preservação dos dados anteriores.
+- A interface é verificada com históricos fictícios incompletos no ambiente `/qa?legacy=1`. Dados reais permanecem exclusivamente no banco privado e nos arquivos de trabalho protegidos.
 
 ## Ajustes de cadastro rápido · 29/10/2026
 

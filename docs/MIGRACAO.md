@@ -1,6 +1,36 @@
 # Migração do AppSheet
 
-Não foram recebidos dados tabulares reais. O PRD não substitui uma exportação das tabelas. A migração permanece pendente e não altera o AppSheet.
+As exportações são conciliadas por origem e identificador. A importação preserva os lançamentos existentes no aplicativo e não altera o AppSheet.
+
+## Exportação Excel original
+
+`scripts/prepare-workbook.py` lê as 13 abas do arquivo de origem com a biblioteca padrão do Python. O resultado contém um manifesto e lotes determinísticos de até 500 linhas. O diretório de saída deve ficar fora do repositório, pois contém dados pessoais. Nunca envie a planilha, os lotes ou os arquivos SQL preenchidos ao GitHub.
+
+```sh
+python scripts/prepare-workbook.py /caminho/arquivo.xlsx /caminho/protegido/importacao \
+  --existing-catalogs /caminho/protegido/cadastros.json --snapshot-date AAAA-MM-DD
+```
+
+`cadastros.json` é uma consulta administrativa dos cadastros atuais. A data deve ser a data confirmada da exportação em Brasília. IDs UUID são determinísticos. Os cadastros existentes são reutilizados sem sobrescrever seus dados.
+
+| Origem | Destino e regra |
+|---|---|
+| Responsável + Acompanhantes | Um atendimento por responsável e seus acompanhantes vinculados pelo ID original. Campos demográficos ausentes permanecem ausentes. |
+| Visitantes com pai conhecido | Projeção do grupo, preservada em `legacy_rows`, sem novo atendimento. Divergências são sinalizadas no grupo. |
+| Visitantes sem pai no cadastro de responsáveis | Atendimento histórico individual. Linhas sem ID recebem uma identidade vinculada ao arquivo e à linha, sem presumir que pessoas iguais sejam a mesma visita. |
+| Resíduos, materiais e serviços | Um atendimento por ID original, com valores históricos e referências resolvidas sem distinção de maiúsculas. |
+| Cadastros auxiliares | Municípios, empresas, veículos, condutores e tipos. Placas repetidas com dados divergentes ficam inativas para conferência. Condutores homônimos recebem a placa no rótulo, mantendo o nome preenchido no registro. |
+| Acompanhante sem pai | Linha original preservada com pendência. Nenhum vínculo, data ou responsável é inventado. |
+
+Todas as linhas não vazias, tipos das células e fórmulas originais são preservados em tabelas privadas com acesso direto bloqueado. O cabeçalho de cada aba fica no manifesto. `legacy_batches` registra o hash SHA-256 do arquivo, o responsável pela importação e os totais esperados. `legacy_rows` vincula cada linha ao atendimento, acompanhante ou cadastro correspondente.
+
+O carregador `app_private.load_workbook_chunk` é exclusivo da conexão administrativa e não tem permissão de execução para `anon`, `authenticated` ou `service_role`. Use uma conexão administrativa autorizada e uma conta administrativa ativa como autora da importação. Inicialize o manifesto, carregue cadastros e simule **todos** os lotes de atendimentos em transações revertidas. Depois aplique atendimentos, acompanhantes e arquivo original, nessa ordem. Cada lote é transacional e pode ser retomado sem duplicar IDs.
+
+`app_private.finish_workbook` só conclui o lote depois de conferir todas as abas, contagens por módulo, acompanhantes, projeções, vínculos, rastreabilidade e volumes. Também compara os registros, acompanhantes e cadastros anteriores com os hashes capturados no início. Não altere a flag de conclusão manualmente.
+
+Datas e horas parciais não recebem valores de preenchimento. Uma quantidade ausente não vira zero. Saída anterior à entrada sem dia explícito não é transferida automaticamente para o dia seguinte. Esses atendimentos aparecem no histórico como **Saída a conferir**. Apenas uma entrada na data confirmada da exportação com saída vazia é mantida em aberto. Horários completos, inclusive saídas em outro dia, são preservados. O aplicativo mostra as pendências e exporta a origem, a linha e as observações de conferência.
+
+Os campos obrigatórios continuam valendo para os novos atendimentos. A exceção de histórico incompleto exige um lote privado de migração e não pode ser ativada pelo formulário ou pela API pública.
 
 ## Preparação
 
