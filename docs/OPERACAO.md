@@ -22,6 +22,12 @@ Em **Cadastros auxiliares → Veículos Operacionais**, pesquise por placa, cond
 
 Se uma entrada offline tentar cadastrar uma placa ativa já existente, ela usa o cadastro existente e mantém o condutor e a empresa informados na movimentação. Os padrões do veículo não são alterados pelo operador. A saída aguarda a entrada ser sincronizada; os horários originais e a chave de reenvio são mantidos. Não exclua pendências nem recrie registros para resolver esse caso: use **Tentar sincronizar agora** no aparelho que os salvou.
 
+## Permissões individuais dos operadores
+
+Em **Equipe e permissões**, use **Permissões** na linha do operador. Marque **Dashboard** para gráficos e indicadores e/ou **Cadastros auxiliares** para consulta, criação, edição e remoção das opções. Salve em **Salvar permissões**. Novos operadores e os já existentes começam sem esses dois acessos extras. Administradores sempre possuem acesso completo. Apenas administradores alteram permissões.
+
+As autorizações são verificadas no banco a cada operação, inclusive após revogação, sem depender do token ou de campos editáveis da conta. O menu consulta as permissões ao voltar à janela, reconectar ou a cada minuto com a janela visível. As mudanças ficam na auditoria. Equipe e permissões, auditoria, continuidade, cancelamentos, correção de horários e exportação dos registros permanecem exclusivos da administração. Os cadastros ativos usados nos formulários e os cadastros rápidos do atendimento continuam disponíveis aos operadores.
+
 ## Senhas e contas
 
 O primeiro código é privado, expira e só pode ser utilizado uma vez. Não há senha padrão. Contas criadas pelo administrador começam com a senha definida por ele; o colaborador pode alterá-la em **Minha senha**.

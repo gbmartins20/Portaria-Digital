@@ -30,3 +30,5 @@
 @media(max-width:700px){.install-compact span{display:none}.topbar>.install-app-button{margin-right:0;padding:10px;min-width:42px;min-height:42px}.install-guide p{font-size:12px}}
 
 .pending-panel{margin:16px 24px;padding:18px;border:1px solid #d99e32;border-radius:12px;background:#fff8e8;color:#493612}.pending-panel p{font-size:13px;margin:8px 0}.pending-row{display:flex;justify-content:space-between;gap:12px;padding-top:12px;font-size:13px}.pending-row small{display:block;color:#9d2d26;margin-top:5px}@media(max-width:600px){.pending-panel{margin:10px}.pending-row{flex-direction:column}}
+
+@media(max-width:600px){.user-row>.user-info{min-width:calc(100% - 48px)}.user-row>.user-permissions-button{margin-left:auto}}
