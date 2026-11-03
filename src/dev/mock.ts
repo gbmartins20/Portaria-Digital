@@ -10,6 +10,7 @@ if(new URLSearchParams(location.search).has('legacy')){
 }
 let users=[mockProfile];
 export async function mockRPC(name:string,args:Record<string,unknown>):Promise<unknown>{
+ if(name.startsWith('pd_greenhouse_'))return (await import('./greenhouseMock')).greenhouseMock(name,args);
  const p=args.p as Record<string,unknown>;const f=(args.f||{}) as Record<string,string>;
  switch(name){
  case 'pd_me':return mockProfile;

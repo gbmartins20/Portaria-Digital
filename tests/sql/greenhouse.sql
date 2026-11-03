@@ -1,0 +1,72 @@
+begin;
+do $$declare aid uuid:=gen_random_uuid();oid uuid:=gen_random_uuid();plant jsonb;movement jsonb;other jsonb;panel jsonb;key uuid:=gen_random_uuid();p jsonb;fn text;begin
+ insert into app_private.provisioning(email,expires_at) values('gh-admin-'||aid||'@test.invalid',now()+interval '3 minutes'),('gh-op-'||oid||'@test.invalid',now()+interval '3 minutes');
+ insert into auth.users(id,email,raw_user_meta_data) values(aid,'gh-admin-'||aid||'@test.invalid','{"name":"QA GREENHOUSE ADMIN"}'),(oid,'gh-op-'||oid||'@test.invalid','{"name":"QA GREENHOUSE OPERATOR"}');
+ update app_private.profiles set active=true,role=case when id=aid then 'admin' else 'operator' end where id in(aid,oid);
+ perform set_config('request.jwt.claim.sub',aid::text,true);
+ plant:=public.pd_greenhouse_plant_save(jsonb_build_object('name','QA ESTUFA '||aid));
+ if (plant->>'stock')::bigint<>0 then raise exception 'Initial stock not zero';end if;
+ p:=jsonb_build_object('plant_id',plant->>'id','kind','initial','quantity','10','day','2025-01-10');
+ movement:=public.pd_greenhouse_move(p,key);
+ other:=public.pd_greenhouse_move(p,key);
+ if movement->>'id'<>other->>'id' then raise exception 'Idempotency failed';end if;
+ begin perform public.pd_greenhouse_move(p||'{"quantity":"11"}',key);raise exception 'CHANGED RETRY ACCEPTED';exception when others then if sqlerrm='CHANGED RETRY ACCEPTED' then raise;end if;end;
+ begin perform public.pd_greenhouse_move(p,gen_random_uuid());raise exception 'SECOND INITIAL ACCEPTED';exception when others then if sqlerrm='SECOND INITIAL ACCEPTED' then raise;end if;end;
+ p:=p||'{"kind":"production","quantity":"5"}';
+ other:=public.pd_greenhouse_move(p,gen_random_uuid());
+ p:=p||'{"kind":"arrival","origin":"compensation","quantity":"8","day":"2025-02-10"}';
+ other:=public.pd_greenhouse_move(p,gen_random_uuid());
+ p:=p||'{"kind":"departure","origin":"","destination":"QA PLANTIO","quantity":"3"}';
+ other:=public.pd_greenhouse_move(p,gen_random_uuid());
+ if (select stock from app_private.greenhouse_plants where id=(plant->>'id')::uuid)<>20 then raise exception 'Stock mismatch';end if;
+ begin perform public.pd_greenhouse_move(p||'{"quantity":"21"}',gen_random_uuid());raise exception 'NEGATIVE ACCEPTED';exception when others then if sqlerrm='NEGATIVE ACCEPTED' then raise;end if;end;
+ begin perform public.pd_greenhouse_move(p||'{"quantity":"1.5"}',gen_random_uuid());raise exception 'FRACTION ACCEPTED';exception when others then if sqlerrm='FRACTION ACCEPTED' then raise;end if;end;
+ begin perform public.pd_greenhouse_move(p||'{"quantity":"0"}',gen_random_uuid());raise exception 'ZERO ACCEPTED';exception when others then if sqlerrm='ZERO ACCEPTED' then raise;end if;end;
+ begin perform public.pd_greenhouse_move(p||'{"kind":"arrival","origin":""}',gen_random_uuid());raise exception 'ORIGIN MISSING';exception when others then if sqlerrm='ORIGIN MISSING' then raise;end if;end;
+ begin perform public.pd_greenhouse_move(p||'{"day":"2099-01-01"}',gen_random_uuid());raise exception 'FUTURE ACCEPTED';exception when others then if sqlerrm='FUTURE ACCEPTED' then raise;end if;end;
+ begin perform public.pd_greenhouse_plant_save((select to_jsonb(x) from app_private.greenhouse_plants x where id=(plant->>'id')::uuid)||'{"active":false}');raise exception 'ARCHIVE WITH STOCK';exception when others then if sqlerrm='ARCHIVE WITH STOCK' then raise;end if;end;
+ panel:=public.pd_greenhouse_dashboard(jsonb_build_object('year',2025,'plant_id',plant->>'id'));
+ if panel->'totals'<>'{"production":5,"arrival":8,"departure":3}'::jsonb or (panel->>'stock')::int<>20 or jsonb_array_length(panel->'monthly')<>12 then raise exception 'Dashboard totals mismatch: %',panel;end if;
+ if (panel->'monthly'->0->>'production')::int<>5 or (panel->'monthly'->1->>'arrival')::int<>8 or (panel->'monthly'->1->>'departure')::int<>3 or (panel->'monthly'->2->>'production')::int<>0 then raise exception 'Month totals mismatch';end if;
+ perform public.pd_greenhouse_cancel((other->>'id')::uuid,'QA CORREÇÃO');
+ perform public.pd_greenhouse_cancel((other->>'id')::uuid,'QA REPETIÇÃO');
+ if (select stock from app_private.greenhouse_plants where id=(plant->>'id')::uuid)<>23 then raise exception 'Cancellation mismatch';end if;
+ panel:=public.pd_greenhouse_dashboard(jsonb_build_object('year',2025,'plant_id',plant->>'id'));
+ if (panel->'totals'->>'departure')::int<>0 then raise exception 'Canceled counted';end if;
+ -- Empty months and annual separation, including initial stock exclusion.
+ panel:=public.pd_greenhouse_dashboard(jsonb_build_object('year',2024,'plant_id',plant->>'id'));
+ if panel->'totals'<>'{"production":0,"arrival":0,"departure":0}'::jsonb then raise exception 'Wrong year included';end if;
+ -- Reject a stale plant edit.
+ begin perform public.pd_greenhouse_plant_save(plant||'{"name":"QA ALTERADA"}');raise exception 'STALE EDIT ACCEPTED';exception when serialization_failure then null;end;
+ plant:=(select to_jsonb(x) from app_private.greenhouse_plants x where id=(plant->>'id')::uuid);
+ plant:=public.pd_greenhouse_plant_save(plant||jsonb_build_object('name','QA RENAMED '||aid));
+ if not exists(select 1 from jsonb_array_elements(public.pd_greenhouse_history(jsonb_build_object('plant_id',plant->>'id'))->'items')x where x->>'plant_name'=plant->>'name') then raise exception 'Rename lost history';end if;
+ -- Spend all stock, forbid canceling its source while stock would go negative.
+ other:=public.pd_greenhouse_move(p||'{"quantity":"23"}',gen_random_uuid());
+ begin perform public.pd_greenhouse_cancel((movement->>'id')::uuid,'QA CANCEL INITIAL');raise exception 'NEGATIVE CANCEL ACCEPTED';exception when others then if sqlerrm='NEGATIVE CANCEL ACCEPTED' then raise;end if;end;
+ plant:=(select to_jsonb(x) from app_private.greenhouse_plants x where id=(plant->>'id')::uuid);
+ plant:=public.pd_greenhouse_plant_save(plant||'{"active":false}');
+ begin perform public.pd_greenhouse_move(p,gen_random_uuid());raise exception 'INACTIVE PLANT ACCEPTED';exception when others then if sqlerrm='INACTIVE PLANT ACCEPTED' then raise;end if;end;
+ plant:=public.pd_greenhouse_plant_save(plant||'{"active":true}');
+ if not (plant->>'active')::boolean then raise exception 'Reactivation failed';end if;
+ -- Operators may see aggregate charts only when their Dashboard permission is on.
+ perform set_config('request.jwt.claim.sub',oid::text,true);
+ begin perform public.pd_greenhouse_plants();raise exception 'OPERATOR MANAGED';exception when insufficient_privilege then null;end;
+ begin perform public.pd_greenhouse_plant_save('{"name":"QA FORBIDDEN"}');raise exception 'OPERATOR SAVE';exception when insufficient_privilege then null;end;
+ begin perform public.pd_greenhouse_move(p,gen_random_uuid());raise exception 'OPERATOR MOVE';exception when insufficient_privilege then null;end;
+ begin perform public.pd_greenhouse_cancel((movement->>'id')::uuid,'QA FORBIDDEN');raise exception 'OPERATOR CANCEL';exception when insufficient_privilege then null;end;
+ begin perform public.pd_greenhouse_history('{}');raise exception 'OPERATOR HISTORY';exception when insufficient_privilege then null;end;
+ begin perform public.pd_greenhouse_dashboard('{}');raise exception 'OPERATOR DASH';exception when insufficient_privilege then null;end;
+ update app_private.profiles set permissions='{"dashboard":true,"catalogs":false}' where id=oid;
+ perform public.pd_greenhouse_dashboard('{}');
+ update app_private.profiles set active=false where id=oid;
+ begin perform public.pd_greenhouse_dashboard('{}');raise exception 'INACTIVE USER';exception when insufficient_privilege then null;end;
+ perform set_config('request.jwt.claim.sub','',true);
+ begin perform public.pd_greenhouse_plants();raise exception 'NO AUTH';exception when insufficient_privilege then null;end;
+ foreach fn in array array['pd_greenhouse_plants()','pd_greenhouse_plant_save(jsonb)','pd_greenhouse_move(jsonb,uuid)','pd_greenhouse_cancel(uuid,text)','pd_greenhouse_history(jsonb)','pd_greenhouse_dashboard(jsonb)'] loop
+ if has_function_privilege('anon','public.'||fn,'execute') then raise exception 'Anonymous access: %',fn;end if;
+ end loop;
+ if has_table_privilege('authenticated','app_private.greenhouse_plants','UPDATE') or has_table_privilege('authenticated','app_private.greenhouse_movements','INSERT') then raise exception 'Direct writes exposed';end if;
+end$$;
+select 'Estufas: saldo, produção, chegadas, saída, idempotência, validação, remoção, reativação, concorrência de versão, cancelamentos, gráficos, períodos e permissões aprovados.' result;
+rollback;

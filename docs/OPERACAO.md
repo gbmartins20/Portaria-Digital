@@ -105,3 +105,19 @@ O arquivo `vercel.json` configura o projeto como Vite, instala as dependências 
 Importe o repositório `gbmartins20/Portaria-Digital`, branch `main`, na equipe Vercel autorizada. Use Node.js 24 e configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` conforme `.env.example`. Esses dois valores são públicos do cliente; nunca use service_role no frontend. O banco, as contas e a Edge Function continuam no projeto Supabase existente. Não execute migrações nem reimporte dados para trocar a hospedagem.
 
 O endereço de produção destinado à equipe deve apresentar diretamente o login do Portaria Digital. Valide uma sessão sem autenticação e o bloqueio das consultas sem usuário autorizado. A instalação no celular deve usar o novo endereço de produção. A hospedagem anterior no Sites possui uma configuração independente de acesso e não é alterada pela publicação na Vercel.
+
+
+## Gerenciamento das estufas
+
+Administradores encontram **Gerenciamento das estufas** no menu. Os 166 nomes da relação inicial são importados sem inferir quantidades nem corrigir a grafia. Nomes semelhantes permanecem separados.
+
+- **Plantas e estoque:** pesquisar, cadastrar, renomear, remover e reativar plantas. A remoção exige saldo zero e preserva o histórico.
+- **Saldo inicial:** informar a contagem física já existente, antes das outras movimentações de cada planta. Não é contado como produção ou chegada nos gráficos.
+- **Nova produção:** soma unidades produzidas no parque.
+- **Registrar chegada:** soma unidades e exige origem (rua, medida compensatória ou outra origem).
+- **Registrar saída:** desconta unidades e exige destino ou motivo (doação, plantio, perda etc.). Saídas acima do saldo são bloqueadas.
+- **Histórico:** filtrar por planta, tipo e período. Para corrigir um lançamento, cancelar com justificativa e registrar novamente. O cancelamento reverte o saldo, preserva a auditoria e não pode deixar o estoque negativo.
+
+Quantidades são inteiras, em unidades. O módulo precisa de internet e confirma os lançamentos no servidor; não utiliza a fila offline da portaria. Repetir o envio no mesmo formulário após demora de confirmação não duplica o lançamento.
+
+No **Dashboard → Estufas**, consultar gráfico mensal de produção, chegadas e saídas; totais por planta; filtro por ano e planta; e exportação CSV. O saldo disponível é sempre o atual, independente do ano selecionado. Meses sem movimentação aparecem com zero. Operadores com permissão de Dashboard podem consultar estes agregados; somente administradores gerenciam plantas e lançamentos.

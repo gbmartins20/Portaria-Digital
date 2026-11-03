@@ -18,3 +18,7 @@ grant execute on function public.pd_dashboard(jsonb),app_private.dashboard(jsonb
 update app_private.bootstrap set used_at=now(),token_hash='restored-disabled',reservation=null,reserved_at=null,email=null;
 truncate app_private.provisioning;
 notify pgrst,'reload schema';
+
+-- Greenhouse RPC facade (the private implementation validates current roles).
+grant execute on function app_private.greenhouse_plants_list(),app_private.greenhouse_plant_save(jsonb),app_private.greenhouse_move(jsonb,uuid),app_private.greenhouse_cancel(uuid,text),app_private.greenhouse_history(jsonb),app_private.greenhouse_dashboard(jsonb) to authenticated;
+grant execute on function public.pd_greenhouse_plants(),public.pd_greenhouse_plant_save(jsonb),public.pd_greenhouse_move(jsonb,uuid),public.pd_greenhouse_cancel(uuid,text),public.pd_greenhouse_history(jsonb),public.pd_greenhouse_dashboard(jsonb) to authenticated;
