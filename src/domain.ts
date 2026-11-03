@@ -3,8 +3,8 @@ export type Sex = 'M'|'F';
 export const ages = ['0-4','5-15','16-20','21-35','36-59','60+'] as const;
 export type Age = typeof ages[number];
 export type Companion = {sex:Sex|'';age:Age|''};
-export type Profile = {id:string;name:string;email:string;role:'admin'|'operator';active:boolean;permissions?:{dashboard:boolean;catalogs:boolean}};
-export function canAccess(profile:Profile|null|undefined,scope:'dashboard'|'catalogs'){return !!profile?.active&&(profile.role==='admin'||profile.permissions?.[scope]===true);}
+export type Profile = {id:string;name:string;email:string;role:'admin'|'operator';active:boolean;permissions?:{dashboard:boolean;catalogs:boolean;greenhouse?:boolean}};
+export function canAccess(profile:Profile|null|undefined,scope:'dashboard'|'catalogs'|'greenhouse'){return !!profile?.active&&(profile.role==='admin'||profile.permissions?.[scope]===true);}
 export type Kind = 'city'|'company'|'waste'|'material'|'vehicle'|'service';
 export type Catalog = {id:string;kind:Kind;name:string;active:boolean;version:number;data:Record<string,string>};
 export type Legacy = {sheet:string;row:number;source_id:string|null;visit_date:string|null;entry_time:string|null;exit_time:string|null;open_at_import:boolean;issues:string[];entry_operator:string;exit_operator:string};

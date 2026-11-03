@@ -1,7 +1,7 @@
 import {useEffect,useState} from 'react';
 import {BarChart3,Users,Truck,PackageOpen,RefreshCw,Info,ArrowDownToLine,Sprout} from 'lucide-react';
 import {rpc,errorMessage} from './api';
-import {csvCell} from './domain';
+import {csvCell,canAccess,type Profile} from './domain';
 import {ErrorNotice} from './ui';
 import {GreenhouseDashboard} from './GreenhouseDashboard';
 type Slice={label:string;value:number};
@@ -31,7 +31,9 @@ function PortariaDashboard(){
  </div>;
 }
 
-export function Dashboard(){
+export function Dashboard({profile}:{profile:Profile}){
  const [section,setSection]=useState<'portaria'|'greenhouse'>('portaria');
- return <><div className="dash-tabs gh-dashboard-switch" role="tablist" aria-label="Área do Dashboard"><button role="tab" aria-selected={section==='portaria'} onClick={()=>setSection('portaria')}><BarChart3 size={18}/>Portaria</button><button role="tab" aria-selected={section==='greenhouse'} onClick={()=>setSection('greenhouse')}><Sprout size={18}/>Estufas</button></div>{section==='portaria'?<PortariaDashboard/>:<div className="dashboard"><div className="page-heading"><div><div className="eyebrow">ADMINISTRAÇÃO · INDICADORES</div><h1>Panorama das estufas</h1><p>Produção, chegadas e saídas de plantas ao longo do ano.</p></div><div className="module-symbol"><Sprout size={28}/></div></div><GreenhouseDashboard/></div>}</>;
+ const greenhouseAllowed=canAccess(profile,'greenhouse');
+ useEffect(()=>{if(!greenhouseAllowed)setSection('portaria');},[greenhouseAllowed]);
+ return <><div className="dash-tabs gh-dashboard-switch" role="tablist" aria-label="Área do Dashboard"><button role="tab" aria-selected={section==='portaria'} onClick={()=>setSection('portaria')}><BarChart3 size={18}/>Portaria</button>{greenhouseAllowed&&<button role="tab" aria-selected={section==='greenhouse'} onClick={()=>setSection('greenhouse')}><Sprout size={18}/>Estufas</button>}</div>{section==='portaria'||!greenhouseAllowed?<PortariaDashboard/>:<div className="dashboard"><div className="page-heading"><div><div className="eyebrow">ADMINISTRAÇÃO · INDICADORES</div><h1>Panorama das estufas</h1><p>Produção, chegadas e saídas de plantas ao longo do ano.</p></div><div className="module-symbol"><Sprout size={28}/></div></div><GreenhouseDashboard/></div>}</>;
 }

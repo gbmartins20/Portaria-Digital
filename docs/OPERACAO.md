@@ -109,7 +109,7 @@ O endereço de produção destinado à equipe deve apresentar diretamente o logi
 
 ## Gerenciamento das estufas
 
-Administradores encontram **Gerenciamento das estufas** no menu. Os 166 nomes da relação inicial são importados sem inferir quantidades nem corrigir a grafia. Nomes semelhantes permanecem separados.
+Administradores e operadores com acesso liberado encontram **Gerenciamento das estufas** no menu. Os 166 nomes da relação inicial são importados sem inferir quantidades nem corrigir a grafia. Nomes semelhantes permanecem separados.
 
 - **Plantas e estoque:** pesquisar, cadastrar, renomear, remover e reativar plantas. A remoção exige saldo zero e preserva o histórico.
 - **Saldo inicial:** informar a contagem física já existente, antes das outras movimentações de cada planta. Não é contado como produção ou chegada nos gráficos.
@@ -120,4 +120,6 @@ Administradores encontram **Gerenciamento das estufas** no menu. Os 166 nomes da
 
 Quantidades são inteiras, em unidades. O módulo precisa de internet e confirma os lançamentos no servidor; não utiliza a fila offline da portaria. Repetir o envio no mesmo formulário após demora de confirmação não duplica o lançamento.
 
-No **Dashboard → Estufas**, consultar gráfico mensal de produção, chegadas e saídas; totais por planta; filtro por ano e planta; e exportação CSV. O saldo disponível é sempre o atual, independente do ano selecionado. Meses sem movimentação aparecem com zero. Operadores com permissão de Dashboard podem consultar estes agregados; somente administradores gerenciam plantas e lançamentos.
+No **Dashboard → Estufas**, consultar gráfico mensal de produção, chegadas e saídas; totais por planta; filtro por ano e planta; e exportação CSV. O saldo disponível é sempre o atual, independente do ano selecionado. Meses sem movimentação aparecem com zero. Os gráficos de estufas exigem as permissões de **Dashboard** e **Estufas**. O gerenciamento exige **Estufas**, sem depender das permissões de Dashboard ou Cadastros auxiliares. Administradores ativos têm acesso completo.
+
+Para liberar ou revogar, acesse **Equipe e permissões → Permissões** no operador e marque ou desmarque **Estufas**. O acesso começa desativado para todos os operadores. A verificação ocorre em cada chamada ao banco, inclusive após revogação; a interface atualiza o perfil ao retornar ao aplicativo e periodicamente.

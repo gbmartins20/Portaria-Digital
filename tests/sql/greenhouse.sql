@@ -49,7 +49,7 @@ do $$declare aid uuid:=gen_random_uuid();oid uuid:=gen_random_uuid();plant jsonb
  begin perform public.pd_greenhouse_move(p,gen_random_uuid());raise exception 'INACTIVE PLANT ACCEPTED';exception when others then if sqlerrm='INACTIVE PLANT ACCEPTED' then raise;end if;end;
  plant:=public.pd_greenhouse_plant_save(plant||'{"active":true}');
  if not (plant->>'active')::boolean then raise exception 'Reactivation failed';end if;
- -- Operators may see aggregate charts only when their Dashboard permission is on.
+ -- Aggregate charts also require the independent Estufas permission.
  perform set_config('request.jwt.claim.sub',oid::text,true);
  begin perform public.pd_greenhouse_plants();raise exception 'OPERATOR MANAGED';exception when insufficient_privilege then null;end;
  begin perform public.pd_greenhouse_plant_save('{"name":"QA FORBIDDEN"}');raise exception 'OPERATOR SAVE';exception when insufficient_privilege then null;end;
@@ -58,6 +58,8 @@ do $$declare aid uuid:=gen_random_uuid();oid uuid:=gen_random_uuid();plant jsonb
  begin perform public.pd_greenhouse_history('{}');raise exception 'OPERATOR HISTORY';exception when insufficient_privilege then null;end;
  begin perform public.pd_greenhouse_dashboard('{}');raise exception 'OPERATOR DASH';exception when insufficient_privilege then null;end;
  update app_private.profiles set permissions='{"dashboard":true,"catalogs":false}' where id=oid;
+ begin perform public.pd_greenhouse_dashboard('{}');raise exception 'DASHBOARD ALONE EXPOSED GREENHOUSE';exception when insufficient_privilege then null;end;
+ update app_private.profiles set greenhouse_access=true where id=oid;
  perform public.pd_greenhouse_dashboard('{}');
  update app_private.profiles set active=false where id=oid;
  begin perform public.pd_greenhouse_dashboard('{}');raise exception 'INACTIVE USER';exception when insufficient_privilege then null;end;

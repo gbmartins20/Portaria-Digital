@@ -1,6 +1,6 @@
 // Somente em `vite dev`, na rota /qa. Não integra o build de produção.
 import {uuid,type Entry,type Profile,type Catalog} from '../domain';
-export const mockProfile:Profile={id:'00000000-0000-4000-8000-000000000001',name:'EQUIPE DE TESTE',email:'qa@example.invalid',role:new URLSearchParams(location.search).get('role')==='operator'?'operator':'admin',active:true};
+export const mockProfile:Profile={id:'00000000-0000-4000-8000-000000000001',name:'EQUIPE DE TESTE',email:'qa@example.invalid',role:new URLSearchParams(location.search).get('role')==='operator'?'operator':'admin',active:true,permissions:{dashboard:new URLSearchParams(location.search).get('dashboard')==='1',catalogs:new URLSearchParams(location.search).get('catalogs')==='1',greenhouse:new URLSearchParams(location.search).get('greenhouse')==='1'}};
 const city='00000000-0000-4000-8000-000000000010',vehicle='00000000-0000-4000-8000-000000000011',service='00000000-0000-4000-8000-000000000012',waste='00000000-0000-4000-8000-000000000013',material='00000000-0000-4000-8000-000000000014';
 const catalogs:Catalog[]=[{id:city,kind:'city',name:'CIDADE DE TESTE',active:true,version:1,data:{uf:'RJ'}},{id:vehicle,kind:'vehicle',name:'TST1A23',active:true,version:1,data:{plate:'TST1A23',driver:'CONDUTOR DE TESTE',company:'EMPRESA DE TESTE'}},{id:service,kind:'service',name:'PRESTADOR DE TESTE',active:true,version:1,data:{plate:'TST2B34',company:'EMPRESA DE TESTE',vehicle:'VEÍCULO DE TESTE'}},{id:waste,kind:'waste',name:'RESÍDUO DE TESTE',active:true,version:1,data:{}},{id:material,kind:'material',name:'MATERIAL DE TESTE',active:true,version:1,data:{}}];
 const records:Entry[]=[{id:uuid(),request_key:uuid(),module:'visitor',name:'VISITANTE DE TESTE',sex:'M',age:'21-35',city_id:city,city_name:'CIDADE DE TESTE',phone:'',plate:'TST3C45',vehicle_id:'',driver:'',company_name:'',vehicle_label:'',type_id:'',type_name:'',quantity:0,location:'',note:'',entry_at:new Date(Date.now()-3600000).toISOString(),exit_at:null,created_by:mockProfile.id,created_name:mockProfile.name,closed_name:null,version:1,canceled_at:null,canceled_name:null,cancel_reason:null,companions:[{sex:'F',age:'21-35'},{sex:'M',age:'5-15'}]}];
@@ -14,6 +14,7 @@ export async function mockRPC(name:string,args:Record<string,unknown>):Promise<u
  const p=args.p as Record<string,unknown>;const f=(args.f||{}) as Record<string,string>;
  switch(name){
  case 'pd_me':return mockProfile;
+ case 'pd_user_permissions':{const user=users.find(u=>u.id===args.uid);if(!user)throw new Error('Usuário não encontrado.');user.permissions=p as Profile['permissions'];return {...user};}
  case 'pd_dashboard':return (await import('./dashboardMock')).dashboardMock(f);
  case 'pd_catalogs':return catalogs.filter(c=>(!f.kind||c.kind===f.kind)&&(c.active||f.inactive)&&(!f.search||c.name.toLowerCase().includes(f.search.toLowerCase()))).map(c=>({...c}));
  case 'pd_catalog_save':{const c={...p,id:p.id||uuid(),version:Number(p.version||0)+1} as Catalog;const i=catalogs.findIndex(x=>x.id===c.id);if(i<0)catalogs.push(c);else catalogs[i]=c;return c;}

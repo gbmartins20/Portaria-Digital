@@ -8,9 +8,9 @@ do $$declare admin_id uuid:=gen_random_uuid();operator_id uuid:=gen_random_uuid(
   perform set_config('request.jwt.claim.sub',admin_id::text,true);
   flags:=jsonb_build_object('dashboard',d,'catalogs',c);
   result:=public.pd_user_permissions(operator_id,flags);
-  if result->'permissions'<>flags or result->>'role'<>'operator' then raise exception 'Não salvou permissões sem alterar perfil';end if;
+  if result->'permissions'<>(flags||'{"greenhouse":false}'::jsonb) or result->>'role'<>'operator' then raise exception 'Não salvou permissões sem alterar perfil';end if;
   perform set_config('request.jwt.claim.sub',operator_id::text,true);
-  if public.pd_me()->'permissions'<>flags then raise exception 'Perfil não refletiu as permissões';end if;
+  if public.pd_me()->'permissions'<>(flags||'{"greenhouse":false}'::jsonb) then raise exception 'Perfil não refletiu as permissões';end if;
   if d then perform public.pd_dashboard('{"module":"visitor","from":"2099-01-01","to":"2099-01-02"}');
   else begin perform public.pd_dashboard('{}');raise exception 'DASHBOARD LIBERADO';exception when insufficient_privilege then null;end;end if;
   if c then
