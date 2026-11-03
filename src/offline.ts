@@ -21,7 +21,7 @@ export async function capture(args:Record<string,unknown>,owner:Profile):Promise
 export async function queueClose(entry:Entry,owner:string){const at=new Date().toISOString();const q=(await pending(owner)).find(x=>x.action==='save'&&x.entry.id===entry.id);const id=crypto.randomUUID();await put({id,owner,at,action:'close',args:q?{request_key:q.id}:{rid:entry.id},entry:{...entry,exit_at:at}});}
 let running:Promise<void>|null=null;
 export async function sync(owner:string){if(!navigator.onLine)return;const work=async()=>{for(const item of await pending(owner)){
- try{const {data:{session}}=await supabase.auth.getSession();if(session?.user.id!==owner)return;
+ try{const {data:{session}}=await supabase.auth.getSession();if(session?.user.id!==owner)return;if(item.action==='close'&&item.args.request_key&&(await pending(owner)).some(x=>x.action==='save'&&x.id===item.args.request_key)){await put({...item,error:'Aguardando a sincronização da entrada deste atendimento.'});continue;}
  await remoteRPC('pd_sync',{operation:item.action,payload:item.args,occurred_at:item.at,operation_key:item.id});await remove(item.id);
  }catch(e){await put({...item,error:networkError(e)?'Aguardando conexão com o servidor.':e instanceof Error?e.message:String(e)});if(networkError(e)||/JWT|session|token|permission|acesso/i.test(String(e)))break;}
  }};

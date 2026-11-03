@@ -37,9 +37,9 @@ do $$declare p jsonb;r jsonb;again jsonb;c jsonb;key uuid:=gen_random_uuid();fai
  if again->>'vehicle_id'=r->>'vehicle_id' then raise exception 'Veículo novo reutilizou ID errado';end if;
  -- Natural key evita duplicar uma placa em requisições diferentes.
  again:=public.pd_save(p,gen_random_uuid());if again->>'vehicle_id'<>r->>'vehicle_id' then raise exception 'Placa duplicada no cadastro';end if;
- -- Placa já cadastrada com outros dados nunca é sobrescrita pelo operador.
- failed:=false;begin perform public.pd_save(p||'{"new_catalog":{"kind":"vehicle","name":"QOP1A23","data":{"plate":"QOP1A23","driver":"OUTRO CONDUTOR","company":"OUTRA EMPRESA"}}}',gen_random_uuid());exception when others then failed:=true;end;
- if not failed or public.pd_catalogs('{"kind":"vehicle","search":"QOP1A23"}')->0->'data'->>'company'<>'QUICK EMPRESA' then raise exception 'Cadastro existente foi sobrescrito';end if;
+ -- Placa já cadastrada é reutilizada sem sobrescrever os padrões do cadastro.
+ again:=public.pd_save(p||'{"driver":"OUTRO CONDUTOR","company_name":"OUTRA EMPRESA","new_catalog":{"kind":"vehicle","name":"QOP1A23","data":{"plate":"QOP1A23","driver":"OUTRO CONDUTOR","company":"OUTRA EMPRESA"}}}',gen_random_uuid());
+ if again->>'vehicle_id'<>r->>'vehicle_id' or again->>'driver'<>'OUTRO CONDUTOR' or again->>'company_name'<>'OUTRA EMPRESA' or public.pd_catalogs('{"kind":"vehicle","search":"QOP1A23"}')->0->'data'->>'company'<>'QUICK EMPRESA' then raise exception 'Cadastro existente ou dados da movimentação foram sobrescritos';end if;
  -- Serviço exige e preserva condutor, placa, empresa e veículo.
  p:='{"module":"service","plate":"QOP3C45","driver":"QUICK PRESTADOR","company_name":"QUICK EMPRESA","vehicle_label":"QUICK CAMINHONETE","new_catalog":{"kind":"service","name":"QUICK PRESTADOR","data":{"plate":"QOP3C45","company":"QUICK EMPRESA","vehicle":"QUICK CAMINHONETE"}}}';
  r:=public.pd_save(p,gen_random_uuid());c:=public.pd_catalogs('{"kind":"service","search":"QUICK PRESTADOR"}')->0;

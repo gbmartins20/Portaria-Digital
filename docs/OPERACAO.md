@@ -18,6 +18,10 @@ Quantidade aceita zero e até três casas decimais. Uma placa já aberta gera av
 
 Operador pode corrigir dados descritivos de movimentações abertas. Administrador pode corrigir registros encerrados e horários mediante justificativa. Cancelar preserva os dados; não há exclusão definitiva ou reabertura pela interface.
 
+Em **Cadastros auxiliares → Veículos Operacionais**, pesquise por placa, condutor ou empresa e abra o cadastro para editar. **Remover das opções** desativa o cadastro, preserva referências e histórico e permite reativar depois. Sincronize movimentações pendentes antes de desativar um veículo. Cadastros incompletos também podem ser removidos das opções sem inventar dados obrigatórios.
+
+Se uma entrada offline tentar cadastrar uma placa ativa já existente, ela usa o cadastro existente e mantém o condutor e a empresa informados na movimentação. Os padrões do veículo não são alterados pelo operador. A saída aguarda a entrada ser sincronizada; os horários originais e a chave de reenvio são mantidos. Não exclua pendências nem recrie registros para resolver esse caso: use **Tentar sincronizar agora** no aparelho que os salvou.
+
 ## Senhas e contas
 
 O primeiro código é privado, expira e só pode ser utilizado uma vez. Não há senha padrão. Contas criadas pelo administrador começam com a senha definida por ele; o colaborador pode alterá-la em **Minha senha**.

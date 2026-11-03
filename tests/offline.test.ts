@@ -9,8 +9,8 @@ test('fila offline persiste, isola contas, mantém erros e reenvia entrada/saíd
  Object.defineProperty(globalThis,'window',{value:new EventTarget(),configurable:true});
  let online=false;Object.defineProperty(globalThis,'navigator',{value:{get onLine(){return online;},storage:{persist:async()=>true}},configurable:true});
  const owner={id:'account-a',name:'Operador QA',email:'qa@example.invalid',role:'operator',active:true};
- let account=owner.id;let fail=true;const requests:any[]=[];const server=new Map();
- (globalThis as any).__offlineTransport={supabase:{auth:{getSession:async()=>({data:{session:{user:{id:account}}}})}},remoteRPC:async(name:string,args:any)=>{requests.push({name,args});if(fail)throw new Error('Failed to fetch');if(args.operation==='save'){const key=args.payload.request_key;if(!server.has(key))server.set(key,{id:'server:'+key});}return {};}};
+ let account=owner.id;let fail=true;let conflict=false;const requests:any[]=[];const server=new Map();
+ (globalThis as any).__offlineTransport={supabase:{auth:{getSession:async()=>({data:{session:{user:{id:account}}}})}},remoteRPC:async(name:string,args:any)=>{requests.push({name,args});if(fail)throw new Error('Failed to fetch');if(conflict)throw new Error('Este veículo já existe com outros dados.');if(args.operation==='save'){const key=args.payload.request_key;if(!server.has(key))server.set(key,{id:'server:'+key});}return {};}};
  const source=readFileSync(new URL('../src/offline.ts',import.meta.url),'utf8').replace("import {remoteRPC,supabase} from './api';","const {remoteRPC,supabase}=globalThis.__offlineTransport;");
  const js=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText;
  const m=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
@@ -23,7 +23,8 @@ test('fila offline persiste, isola contas, mantém erros e reenvia entrada/saíd
  await m.queueClose(entry,owner.id);assert.equal((await m.pending(owner.id)).length,2);
  await m.sync(owner.id);assert.equal(requests.length,0);
  online=true;await m.sync(owner.id);assert.equal((await m.pending(owner.id)).length,2);assert.match((await m.pending(owner.id))[0].error,/conexão/);
- account='other-account';fail=false;await m.sync(owner.id);assert.equal(server.size,0);
+ fail=false;conflict=true;const tries=requests.length;await m.sync(owner.id);assert.equal(requests.length,tries+1);assert.match((await m.pending(owner.id))[1].error,/Aguardando a sincronização da entrada/);assert.equal((await m.pending(owner.id)).length,2);conflict=false;
+ account='other-account';await m.sync(owner.id);assert.equal(server.size,0);
  account=owner.id;await Promise.all([m.sync(owner.id),m.sync(owner.id)]);assert.equal((await m.pending(owner.id)).length,0);assert.equal(server.size,1);
  const sent=requests.filter(r=>r.args.operation==='save');assert.ok(sent.every(r=>r.args.operation_key===args.request_key));assert.equal(requests.at(-1).args.operation,'close');
  await m.forgetAccess();assert.equal(await m.cachedProfile(),undefined);
