@@ -3,7 +3,9 @@ export type Sex = 'M'|'F';
 export const ages = ['0-4','5-15','16-20','21-35','36-59','60+'] as const;
 export type Age = typeof ages[number];
 export type Companion = {sex:Sex|'';age:Age|''};
-export type Profile = {id:string;name:string;email:string;role:'admin'|'operator';active:boolean;permissions?:{dashboard:boolean;catalogs:boolean;greenhouse?:boolean}};
+export type NotificationPreferences = {enabled:boolean;visitor:boolean;disposal:boolean;material:boolean;service:boolean};
+export const defaultNotifications:NotificationPreferences={enabled:false,visitor:true,disposal:true,material:true,service:true};
+export type Profile = {id:string;name:string;email:string;role:'admin'|'operator';active:boolean;avatar_path?:string|null;notification_preferences?:NotificationPreferences;permissions?:{dashboard:boolean;catalogs:boolean;greenhouse?:boolean}};
 export function canAccess(profile:Profile|null|undefined,scope:'dashboard'|'catalogs'|'greenhouse'){return !!profile?.active&&(profile.role==='admin'||profile.permissions?.[scope]===true);}
 export type Kind = 'city'|'company'|'waste'|'material'|'vehicle'|'service';
 export type Catalog = {id:string;kind:Kind;name:string;active:boolean;version:number;data:Record<string,string>};

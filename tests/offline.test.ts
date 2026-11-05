@@ -11,7 +11,7 @@ test('fila offline persiste, isola contas, mantém erros e reenvia entrada/saíd
  const owner={id:'account-a',name:'Operador QA',email:'qa@example.invalid',role:'operator',active:true};
  let account=owner.id;let fail=true;let conflict=false;const requests:any[]=[];const server=new Map();
  (globalThis as any).__offlineTransport={supabase:{auth:{getSession:async()=>({data:{session:{user:{id:account}}}})}},remoteRPC:async(name:string,args:any)=>{requests.push({name,args});if(fail)throw new Error('Failed to fetch');if(conflict)throw new Error('Este veículo já existe com outros dados.');if(args.operation==='save'){const key=args.payload.request_key;if(!server.has(key))server.set(key,{id:'server:'+key});}return {};}};
- const source=readFileSync(new URL('../src/offline.ts',import.meta.url),'utf8').replace("import {remoteRPC,supabase} from './api';","const {remoteRPC,supabase}=globalThis.__offlineTransport;");
+ const source=readFileSync(new URL('../src/offline.ts',import.meta.url),'utf8').replace("import {remoteRPC,supabase} from './api';","const {remoteRPC,supabase}=globalThis.__offlineTransport;").replace("import {notificationAction} from './api';","const {notificationAction}=globalThis.__offlineTransport;");
  const js=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText;
  const m=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
  await m.persist('active',owner.id);await m.persist('profile:'+owner.id,owner);

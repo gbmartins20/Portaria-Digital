@@ -15,4 +15,12 @@ export async function adminAction(body:Record<string,unknown>){
 }
 export function errorMessage(e:unknown){const text=e instanceof Error?e.message:String(e);if(/fetch|network|abort|timeout|load failed/i.test(text))return 'Não recebemos confirmação do servidor. Confira a conexão e tente novamente.';return text;}
 
+export async function notificationAction<T>(body:Record<string,unknown>):Promise<T>{
+ const {data:{session}}=await supabase.auth.getSession();
+ if(!session)throw new Error('Entre novamente para continuar.');
+ const res=await fetch(`${SUPABASE_URL}/functions/v1/portaria-notifications`,{method:'POST',headers:{'Content-Type':'application/json',apikey:PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`},body:JSON.stringify(body),signal:AbortSignal.timeout(18000)});
+ if(res.status>=500)throw new Error('Network: serviço temporariamente indisponível.');
+ const json=await res.json();if(!res.ok||json.error)throw new Error(json.error||'Não foi possível concluir.');return json as T;
+}
+
 export async function rpc<T>(name:string,args:Record<string,unknown>={}):Promise<T>{if(DEV_PREVIEW)return remoteRPC<T>(name,args);const {offlineRPC}=await import('./offline');return offlineRPC<T>(name,args);}

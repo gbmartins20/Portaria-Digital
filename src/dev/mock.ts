@@ -14,6 +14,7 @@ export async function mockRPC(name:string,args:Record<string,unknown>):Promise<u
  const p=args.p as Record<string,unknown>;const f=(args.f||{}) as Record<string,string>;
  switch(name){
  case 'pd_me':return mockProfile;
+ case 'pd_settings':Object.assign(mockProfile,p);return {...mockProfile};
  case 'pd_user_permissions':{const user=users.find(u=>u.id===args.uid);if(!user)throw new Error('Usuário não encontrado.');user.permissions=p as Profile['permissions'];return {...user};}
  case 'pd_dashboard':return (await import('./dashboardMock')).dashboardMock(f);
  case 'pd_catalogs':return catalogs.filter(c=>(!f.kind||c.kind===f.kind)&&(c.active||f.inactive)&&(!f.search||c.name.toLowerCase().includes(f.search.toLowerCase()))).map(c=>({...c}));

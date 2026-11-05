@@ -1,4 +1,5 @@
 import {remoteRPC,supabase} from './api';
+import {notificationAction} from './api';
 import type {Entry,Profile,Catalog} from './domain';
 export type Pending={id:string;owner:string;at:string;action:'save'|'close';args:Record<string,unknown>;entry:Entry;error?:string};
 const event=()=>window.dispatchEvent(new Event('pd-offline'));
@@ -19,8 +20,10 @@ export async function capture(args:Record<string,unknown>,owner:Profile):Promise
  await put({id,owner:owner.id,at,action:'save',args,entry});navigator.storage?.persist?.().catch(()=>{});return entry;
 }
 export async function queueClose(entry:Entry,owner:string){const at=new Date().toISOString();const q=(await pending(owner)).find(x=>x.action==='save'&&x.entry.id===entry.id);const id=crypto.randomUUID();await put({id,owner,at,action:'close',args:q?{request_key:q.id}:{rid:entry.id},entry:{...entry,exit_at:at}});}
+const onlineInFlight=new Set<string>();
 let running:Promise<void>|null=null;
 export async function sync(owner:string){if(!navigator.onLine)return;const work=async()=>{for(const item of await pending(owner)){
+ if(onlineInFlight.has(item.id))continue;
  try{const {data:{session}}=await supabase.auth.getSession();if(session?.user.id!==owner)return;if(item.action==='close'&&item.args.request_key&&(await pending(owner)).some(x=>x.action==='save'&&x.id===item.args.request_key)){await put({...item,error:'Aguardando a sincronização da entrada deste atendimento.'});continue;}
  await remoteRPC('pd_sync',{operation:item.action,payload:item.args,occurred_at:item.at,operation_key:item.id});await remove(item.id);
  }catch(e){await put({...item,error:networkError(e)?'Aguardando conexão com o servidor.':e instanceof Error?e.message:String(e)});if(networkError(e)||/JWT|session|token|permission|acesso/i.test(String(e)))break;}
@@ -29,7 +32,23 @@ export async function sync(owner:string){if(!navigator.onLine)return;const work=
 }
 export async function offlineRPC<T>(name:string,args:Record<string,unknown>):Promise<T>{
  const profile=await cachedProfile();
- if(name==='pd_save'&&!args.rid){if(!profile)throw new Error('Entre com sua conta antes de registrar.');return await capture(args,profile) as T;}
+ if(name==='pd_save'&&!args.rid){
+  if(!profile)throw new Error('Entre com sua conta antes de registrar.');
+  // A pending request is always replayed silently, even after connectivity returns.
+  const queued=(await pending(profile.id)).find(x=>x.id===args.request_key);
+  if(queued)return queued.entry as T;
+  if(navigator.onLine){
+   const key=String(args.request_key);onlineInFlight.add(key);
+   try{
+    // Persist first: closing the tab or losing the response cannot lose the entry.
+    const local=await capture(args,profile);
+    try{const saved=await notificationAction<T>({action:'entry',payload:args});await remove(key);return saved;}
+    catch(e){if(networkError(e))return local as T;await remove(key);throw e;}
+   }finally{onlineInFlight.delete(key);event();}
+  }
+  // No notification flag is persisted. pd_sync never creates notification events.
+  return await capture(args,profile) as T;
+ }
  if(!navigator.onLine){
  if(name==='pd_me'&&profile)return profile as T;
  if(name==='pd_catalogs'&&profile)return (await stored('catalogs:'+profile.id)||[]) as T;
